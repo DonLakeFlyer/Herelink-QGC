@@ -57,6 +57,15 @@
     "default":     0
 },
 {
+    "name":             "herelinkHdmiInput",
+    "shortDesc": "Herelink HDMI input",
+    "longDesc":  "Switch between HDMI 1 or HDMI 2 of air unit.",
+    "type":             "uint32",
+    "enumStrings":      "HDMI 1,HDMI 2",
+    "enumValues":       "0,1",
+    "default":     0
+},
+{
     "name":             "videoFit",
     "shortDesc": "Video Display Fit",
     "longDesc":  "Handle Video Aspect Ratio.",

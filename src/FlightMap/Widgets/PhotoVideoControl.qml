@@ -330,7 +330,7 @@ Rectangle {
                         flow:   GridLayout.TopToBottom
                         rows:   dynamicRows + _camera.activeSettings.length
 
-                        property int dynamicRows: 10
+                        property int dynamicRows: 11
 
                         // First column
                         QGCLabel {
@@ -377,6 +377,13 @@ Rectangle {
                             visible:            _camera.capturesPhotos && _camera.photoCaptureMode === MavlinkCameraControl.PHOTO_CAPTURE_TIMELAPSE
                             onVisibleChanged:   gridLayout.dynamicRows += visible ? 1 : -1
                         }
+
+                        QGCLabel {
+                            text:               qsTr("Herelink HDMI input")
+                            visible:            true
+                            onVisibleChanged:   gridLayout.dynamicRows += visible ? 1 : -1
+                        }
+
 
                         QGCLabel {
                             text:               qsTr("Video Grid Lines")
@@ -513,6 +520,14 @@ Rectangle {
                             live:               true
                             visible:            _camera.capturesPhotos && _camera.photoCaptureMode === MavlinkCameraControl.PHOTO_CAPTURE_TIMELAPSE
                             onValueChanged:     _camera.photoLapse = value
+                        }
+
+                        FactComboBox {
+                            Layout.fillWidth:   true
+                            sizeToContents:     true
+                            fact:               _videoSettings.herelinkHdmiInput
+                            indexModel:         false
+                            visible:            true
                         }
 
                         QGCSwitch {

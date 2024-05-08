@@ -25,6 +25,7 @@
 #include "MultiVehicleManager.h"
 #include "Settings/SettingsManager.h"
 #include "Vehicle.h"
+#include "LinkInterface.h"
 #include "QGCCameraManager.h"
 #include "QGCLoggingCategory.h"
 
@@ -97,6 +98,7 @@ VideoManager::setToolbox(QGCToolbox *toolbox)
    connect(_videoSettings->tcpUrl(),        &Fact::rawValueChanged, this, &VideoManager::_tcpUrlChanged);
    connect(_videoSettings->aspectRatio(),   &Fact::rawValueChanged, this, &VideoManager::_aspectRatioChanged);
    connect(_videoSettings->lowLatencyMode(),&Fact::rawValueChanged, this, &VideoManager::_lowLatencyModeChanged);
+   connect(_videoSettings->herelinkHdmiInput(),&Fact::rawValueChanged, this, &VideoManager::_herelinkHdmiInputChanged);
    MultiVehicleManager *pVehicleMgr = qgcApp()->toolbox()->multiVehicleManager();
    connect(pVehicleMgr, &MultiVehicleManager::activeVehicleChanged, this, &VideoManager::_setActiveVehicle);
 
@@ -541,6 +543,37 @@ void
 VideoManager::_lowLatencyModeChanged()
 {
     _restartAllVideos();
+}
+
+//-----------------------------------------------------------------------------
+void
+VideoManager::_herelinkHdmiInputChanged()
+{
+    uint32_t input = _videoSettings->herelinkHdmiInput()->rawValue().toInt();
+    qCDebug(VideoManagerLog)() << "HDMI input changed to HDMI " << input + 1;
+
+    if(!_activeVehicle) {
+        return;
+    }
+
+    WeakLinkInterfacePtr weakLink = _activeVehicle->vehicleLinkManager()->primaryLink().lock();
+    if (weakLink.expired()) {
+        return;
+    }
+
+    SharedLinkInterfacePtr sharedLink = weakLink.lock();
+
+    MAVLinkProtocol* mavlinkProtocol = qgcApp()->toolbox()->mavlinkProtocol();
+
+    // TODO: system ID is hard-coded.
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlinkProtocol->getSystemId(), mavlinkProtocol->getComponentId(), &msg,
+                                      42, MAV_COMP_ID_CAMERA,
+                                      MAV_CMD_VIDEO_START_STREAMING, 0, input, 0, 0, 0, 0, 0, 0);
+    uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
+    int len = mavlink_msg_to_send_buffer(buffer, &msg);
+
+    sharedLink->writeBytesThreadSafe((const char*)buffer, len);
 }
 
 //-----------------------------------------------------------------------------
