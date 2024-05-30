@@ -2068,6 +2068,11 @@ bool Vehicle::takeoffVehicleSupported() const
     return _firmwarePlugin->isCapable(this, FirmwarePlugin::TakeoffVehicleCapability);
 }
 
+bool Vehicle::changeHeadingSupported() const
+{
+    return _firmwarePlugin->isCapable(this, FirmwarePlugin::ChangeHeadingCapability);
+}
+
 QString Vehicle::gotoFlightMode() const
 {
     return _firmwarePlugin->gotoFlightMode();
@@ -2287,6 +2292,54 @@ void Vehicle::stopGuidedModeROI()
                     static_cast<float>(qQNaN()),    // Empty
                     static_cast<float>(qQNaN()));   // Empty
     }
+}
+
+void Vehicle::guidedModeChangeHeading(float degrees, float maxYawRate, int8_t direction, bool relative)
+{
+    if (!changeHeadingSupported()) {
+        qgcApp()->showAppMessage(QStringLiteral("Change Heading not supported by Vehicle."));
+        return;
+    }
+
+    sendMavCommand(
+        _defaultComponentId,
+       MAV_CMD_CONDITION_YAW,
+       true,
+       degrees,
+       maxYawRate,
+       direction,
+       relative
+    );
+}
+
+void Vehicle::guidedModeChangeHeading(const QGeoCoordinate &headingCoord)
+{
+    if (!changeHeadingSupported()) {
+        qgcApp()->showAppMessage(QStringLiteral("Change Heading not supported by Vehicle."));
+        return;
+    }
+
+    const float degrees = _coordinate.azimuthTo(headingCoord);
+    const float currentHeading = _headingFact.rawValue().toFloat();
+
+    float diff = degrees - currentHeading;
+    if (diff < -180) {
+        diff += 360;
+    } else if (diff > 180) {
+        diff -= 360;
+    }
+
+    const int8_t direction = (diff > 0) ? 1 : -1;
+
+    float maxYawRate = 0.f;
+    if (apmFirmware()) {
+        static const QString maxYawRateParam = QStringLiteral("ATC_RATE_Y_MAX");
+        if (_parameterManager->parameterExists(_defaultComponentId, maxYawRateParam)) {
+            maxYawRate = _parameterManager->getParameter(ParameterManager::defaultComponentId, maxYawRateParam)->rawValue().toFloat();
+        }
+    }
+
+    guidedModeChangeHeading(diff, maxYawRate, direction, true);
 }
 
 void Vehicle::pauseVehicle()

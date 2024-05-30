@@ -246,6 +246,7 @@ public:
     Q_PROPERTY(bool     orbitModeSupported      READ orbitModeSupported                             CONSTANT)                   ///< Orbit mode is supported by this vehicle
     Q_PROPERTY(bool     roiModeSupported        READ roiModeSupported                               CONSTANT)                   ///< Orbit mode is supported by this vehicle
     Q_PROPERTY(bool     takeoffVehicleSupported READ takeoffVehicleSupported                        CONSTANT)                   ///< Guided takeoff supported
+    Q_PROPERTY(bool     changeHeadingSupported  READ changeHeadingSupported                         CONSTANT)                   ///< Change Heading supported
     Q_PROPERTY(QString  gotoFlightMode          READ gotoFlightMode                                 CONSTANT)                   ///< Flight mode vehicle is in while performing goto
     Q_PROPERTY(bool     haveMRSpeedLimits       READ haveMRSpeedLimits                              NOTIFY haveMRSpeedLimChanged)
     Q_PROPERTY(bool     haveFWSpeedLimits       READ haveFWSpeedLimits                              NOTIFY haveFWSpeedLimChanged)
@@ -326,6 +327,15 @@ public:
     ///     @param altitudeChange If > 0, go up by amount specified, if < 0, go down by amount specified
     ///     @param pauseVehicle true: pause vehicle prior to altitude change
     Q_INVOKABLE void guidedModeChangeAltitude(double altitudeChange, bool pauseVehicle);
+
+    /// Command vehicle to change yaw
+    ///     @param degrees target angle [0-360]. Absolute angles: 0 is north. Relative angle: 0 is initial yaw
+    ///     @param maxYawRate angular speed
+    ///     @param direction direction: -1: counter clockwise, 0: shortest direction, 1: clockwise
+    ///     @param relative 0: absolute angle, 1: relative offset
+    Q_INVOKABLE void guidedModeChangeHeading(float degrees, float maxYawRate, int8_t direction, bool relative);
+
+    Q_INVOKABLE void guidedModeChangeHeading(const QGeoCoordinate &headingCoord);
 
     /// Command vehicle to change groundspeed
     ///     @param groundspeed Target horizontal groundspeed
@@ -424,6 +434,7 @@ public:
     bool    orbitModeSupported      () const;
     bool    roiModeSupported        () const;
     bool    takeoffVehicleSupported () const;
+    bool    changeHeadingSupported  () const;
     QString gotoFlightMode          () const;
     bool    hasGripper              () const;
     bool haveMRSpeedLimits() const { return _multirotor_speed_limits_available; }
