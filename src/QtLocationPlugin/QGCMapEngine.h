@@ -26,6 +26,7 @@ Q_DECLARE_LOGGING_CATEGORY(QGCMapEngineLog)
 
 class QGCMapTask;
 class QGCCacheWorker;
+class QThread;
 
 class QGCMapEngine : public QObject
 {
@@ -57,6 +58,7 @@ private:
     bool m_prunning = false;
     bool m_cacheWasReset = false;
     QString m_cachePath;
+    QThread *m_thread = nullptr;
 };
 
 QGCMapEngine* getQGCMapEngine();

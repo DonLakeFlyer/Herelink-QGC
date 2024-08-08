@@ -29,6 +29,8 @@
 #include <QtCore/qapplicationstatic.h>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QDir>
+#include <QtCore/QThread>
+#include <qnamespace.h>
 
 #define CACHE_PATH_VERSION "300"
 
@@ -51,23 +53,27 @@ QGCMapEngine* QGCMapEngine::instance()
 QGCMapEngine::QGCMapEngine(QObject *parent)
     : QObject(parent)
     , m_worker(new QGCCacheWorker(this))
+    // , m_thread(new QThread(this))
 {
     // qCDebug(QGCMapEngineLog) << Q_FUNC_INFO << this;
 
-    (void) qRegisterMetaType<QGCMapTask::TaskType>();
-    (void) qRegisterMetaType<QGCTile>();
-    (void) qRegisterMetaType<QList<QGCTile*>>();
-    (void) qRegisterMetaType<QGCTileSet>();
-    (void) qRegisterMetaType<QGCCacheTile>();
+    (void) qRegisterMetaType<QGCMapTask::TaskType>("GCMapTask::TaskType");
+    (void) qRegisterMetaType<QGCTile>("QGCTile");
+    (void) qRegisterMetaType<QList<QGCTile*>>("QList<QGCTile*>");
+    (void) qRegisterMetaType<QGCTileSet>("QGCTileSet");
+    (void) qRegisterMetaType<QGCCacheTile>("QGCCacheTile");
 
-    (void) connect(m_worker, &QGCCacheWorker::updateTotals, this, &QGCMapEngine::_updateTotals);
+    // m_worker->moveToThread(m_thread);
+    (void) connect(m_worker, &QGCCacheWorker::updateTotals, this, &QGCMapEngine::_updateTotals, Qt::AutoConnection);
+    // m_thread->start();
 }
 
 QGCMapEngine::~QGCMapEngine()
 {
     (void) disconnect(m_worker);
-    m_worker->quit();
-    m_worker->wait();
+    (void) QMetaObject::invokeMethod(m_worker, "stop", Qt::AutoConnection);
+    m_worker->stop();
+    (void) m_worker->wait();
 
     // qCDebug(QGCMapEngineLog) << Q_FUNC_INFO << this;
 }
@@ -96,7 +102,7 @@ void QGCMapEngine::init()
     m_cachePath = cacheDir;
     if (!m_cachePath.isEmpty()) {
         const QString databaseFilePath(m_cachePath + "/" + QGeoFileTileCacheQGC::getCacheFilename());
-        m_worker->setDatabaseFile(databaseFilePath);
+        m_worker->setDatabaseFilePath(databaseFilePath);
 
         qCDebug(QGCMapEngineLog) << "Map Cache in:" << databaseFilePath;
     } else {
@@ -115,7 +121,9 @@ void QGCMapEngine::init()
 
 bool QGCMapEngine::addTask(QGCMapTask *task)
 {
-    return m_worker->enqueueTask(task);
+    bool result;
+    (void) QMetaObject::invokeMethod(m_worker, "enqueueTask", Qt::AutoConnection, qReturnArg(result), task);
+    return result;
 }
 
 bool QGCMapEngine::_wipeDirectory(const QString &dirPath)
