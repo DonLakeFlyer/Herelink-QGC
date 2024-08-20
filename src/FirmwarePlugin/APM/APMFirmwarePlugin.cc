@@ -83,8 +83,11 @@ bool APMFirmwarePlugin::isCapable(const Vehicle* vehicle, FirmwareCapabilities c
     if (vehicle->multiRotor()) {
         available |= TakeoffVehicleCapability;
         available |= ROIModeCapability;
+        available |= ChangeHeadingCapability;
     } else if (vehicle->vtol()) {
         available |= TakeoffVehicleCapability;
+    } else if (vehicle->sub()) {
+        available |= ChangeHeadingCapability;
     }
 
     return (capabilities & available) == capabilities;
