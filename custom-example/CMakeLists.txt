@@ -10,9 +10,9 @@ set_property(DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
 find_package(Python)
-if(PYTHON_FOUND)
+if(Python_FOUND)
     execute_process(
-        COMMAND ${PYTHON_EXECUTABLE}
+        COMMAND ${Python_EXECUTABLE}
         RESULT_VARIABLE PYTHON_RESULT
         OUTPUT_VARIABLE PYTHON_OUTPUT
         ERROR_VARIABLE PYTHON_ERROR
