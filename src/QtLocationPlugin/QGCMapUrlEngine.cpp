@@ -63,6 +63,7 @@ const QList<SharedMapProvider> UrlFactory::_providers = {
     std::make_shared<VWorldSatMapProvider>(),
 
     std::make_shared<CopernicusElevationProvider>(),
+    std::make_shared<ArduPilotTerrainElevationProvider>(),
 
     std::make_shared<JapanStdMapProvider>(),
     std::make_shared<JapanSeamlessMapProvider>(),
@@ -227,6 +228,18 @@ int UrlFactory::getQtMapIdFromProviderType(QStringView type)
 
     qCWarning(QGCMapUrlEngineLog) << Q_FUNC_INFO << "type not found:" << type;
     return -1;
+}
+
+QStringList UrlFactory::getElevationProviderTypes()
+{
+    QStringList types;
+    for (const SharedMapProvider &provider : _providers) {
+        if (provider->isElevationProvider()) {
+            (void) types.append(provider->getMapName());
+        }
+    }
+
+    return types;
 }
 
 QStringList UrlFactory::getProviderTypes()

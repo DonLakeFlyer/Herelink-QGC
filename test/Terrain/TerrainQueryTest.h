@@ -13,7 +13,7 @@
 #include <QtPositioning/QGeoCoordinate>
 #include <QtPositioning/QGeoRectangle>
 
-#include <TerrainQuery.h>
+#include <TerrainQueryInterface.h>
 
 /// @brief Provides unit test terrain query responses.
 /// @details It provides preset, emulated, 1 arc-second (SRTM1) resolution regions that are either

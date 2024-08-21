@@ -12,9 +12,10 @@
 #include <QtCore/QObject>
 #include <QtPositioning/QGeoCoordinate>
 #include <QtCore/QTimer>
+#include <QtCore/QVariantList>
 #include <QtCore/QLoggingCategory>
 
-#include "TerrainQueryAirMap.h"
+class TerrainQueryInterface;
 
 Q_DECLARE_LOGGING_CATEGORY(TerrainQueryLog)
 Q_DECLARE_LOGGING_CATEGORY(TerrainQueryVerboseLog)
@@ -84,7 +85,7 @@ private slots:
 
 private:
     bool                        _autoDelete;
-    TerrainOfflineAirMapQuery   _terrainQuery;
+    TerrainQueryInterface   *_terrainQuery = nullptr;
 };
 
 Q_DECLARE_METATYPE(TerrainPathQuery::PathHeightInfo_t)
@@ -158,5 +159,5 @@ private:
     State                       _state = State::Idle;
     const int                   _batchTimeout = 500;
     QTimer                      _batchTimer;
-    TerrainOfflineAirMapQuery   _terrainQuery;
+    TerrainQueryInterface   *_terrainQuery = nullptr;
 };

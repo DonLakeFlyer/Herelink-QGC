@@ -61,7 +61,6 @@ private:
     } QueuedRequestInfo_t;
 
     void    _tileFailed                         (void);
-    QString _getTileHash                        (const QGeoCoordinate& coordinate);
 
     QList<QueuedRequestInfo_t>  _requestQueue;
     State                       _state = State::Idle;

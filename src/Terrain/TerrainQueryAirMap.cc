@@ -14,6 +14,7 @@
 
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
+#include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkProxy>
 #include <QtNetwork/QNetworkReply>
@@ -28,7 +29,14 @@ QGC_LOGGING_CATEGORY(TerrainQueryAirMapVerboseLog, "qgc.terrain.terrainqueryairm
 
 TerrainAirMapQuery::TerrainAirMapQuery(QObject* parent)
     : TerrainQueryInterface(parent)
+    , _networkManager(new QNetworkAccessManager(parent))
 {
+#ifndef __mobile__
+    QNetworkProxy proxy = _networkManager->proxy();
+    proxy.setType(QNetworkProxy::DefaultProxy);
+    _networkManager->setProxy(proxy);
+#endif
+
     qCDebug(TerrainQueryAirMapVerboseLog) << "supportsSsl" << QSslSocket::supportsSsl() << "sslLibraryBuildVersionString" << QSslSocket::sslLibraryBuildVersionString();
 }
 
@@ -92,11 +100,7 @@ void TerrainAirMapQuery::_sendQuery(const QString& path, const QUrlQuery& urlQue
     sslConf.setPeerVerifyMode(QSslSocket::VerifyNone);
     request.setSslConfiguration(sslConf);
 
-    QNetworkProxy tProxy;
-    tProxy.setType(QNetworkProxy::DefaultProxy);
-    _networkManager.setProxy(tProxy);
-
-    QNetworkReply* networkReply = _networkManager.get(request);
+    QNetworkReply* networkReply = _networkManager->get(request);
     if (!networkReply) {
         qCWarning(TerrainQueryAirMapLog) << "QNetworkManager::Get did not return QNetworkReply";
         _requestFailed();

@@ -65,7 +65,7 @@ void UnitTestTerrainQuery::requestCarpetHeights(const QGeoCoordinate& swCoord, c
     QList<QList<double>> carpet;
 
     if (swCoord.longitude() > neCoord.longitude() || swCoord.latitude() > neCoord.latitude()) {
-        qCWarning(TerrainQueryLog) << "UnitTestTerrainQuery::requestCarpetHeights: Internal Error - bad carpet coords";
+        // qCWarning(TerrainQueryLog) << "UnitTestTerrainQuery::requestCarpetHeights: Internal Error - bad carpet coords";
         emit qobject_cast<TerrainQueryInterface*>(parent())->carpetHeightsReceived(false, qQNaN(), qQNaN(), carpet);
         return;
     }
