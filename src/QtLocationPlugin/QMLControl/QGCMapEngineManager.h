@@ -32,17 +32,18 @@ class QGCMapEngineManager : public QObject
     Q_MOC_INCLUDE("QmlObjectListModel.h")
     Q_MOC_INCLUDE("QGCCachedTileSet.h")
 
-    Q_PROPERTY(bool                 fetchElevation  MEMBER _fetchElevation                          NOTIFY fetchElevationChanged)
-    Q_PROPERTY(bool                 importReplace   MEMBER _importReplace                           NOTIFY importReplaceChanged)
-    Q_PROPERTY(ImportAction         importAction    READ importAction       WRITE setImportAction   NOTIFY importActionChanged)
-    Q_PROPERTY(int                  actionProgress  READ actionProgress                             NOTIFY actionProgressChanged)
-    Q_PROPERTY(int                  selectedCount   READ selectedCount                              NOTIFY selectedCountChanged)
-    Q_PROPERTY(QmlObjectListModel   *tileSets       READ tileSets                                   NOTIFY tileSetsChanged)
-    Q_PROPERTY(QString              errorMessage    READ errorMessage                               NOTIFY errorMessageChanged)
-    Q_PROPERTY(QString              tileCountStr    READ tileCountStr                               NOTIFY tileCountChanged)
-    Q_PROPERTY(QString              tileSizeStr     READ tileSizeStr                                NOTIFY tileSizeChanged)
-    Q_PROPERTY(QStringList          mapList         READ mapList                                    CONSTANT)
-    Q_PROPERTY(QStringList          mapProviderList READ mapProviderList                            CONSTANT)
+    Q_PROPERTY(bool                 fetchElevation          MEMBER _fetchElevation                          NOTIFY fetchElevationChanged)
+    Q_PROPERTY(bool                 importReplace           MEMBER _importReplace                           NOTIFY importReplaceChanged)
+    Q_PROPERTY(ImportAction         importAction            READ importAction       WRITE setImportAction   NOTIFY importActionChanged)
+    Q_PROPERTY(int                  actionProgress          READ actionProgress                             NOTIFY actionProgressChanged)
+    Q_PROPERTY(int                  selectedCount           READ selectedCount                              NOTIFY selectedCountChanged)
+    Q_PROPERTY(QmlObjectListModel   *tileSets               READ tileSets                                   NOTIFY tileSetsChanged)
+    Q_PROPERTY(QString              errorMessage            READ errorMessage                               NOTIFY errorMessageChanged)
+    Q_PROPERTY(QString              tileCountStr            READ tileCountStr                               NOTIFY tileCountChanged)
+    Q_PROPERTY(QString              tileSizeStr             READ tileSizeStr                                NOTIFY tileSizeChanged)
+    Q_PROPERTY(QStringList          mapList                 READ mapList                                    CONSTANT)
+    Q_PROPERTY(QStringList          mapProviderList         READ mapProviderList                            CONSTANT)
+    Q_PROPERTY(QStringList          elevationProviderList   READ elevationProviderList                      CONSTANT)
     Q_PROPERTY(quint32              diskSpace       READ diskSpace)
     Q_PROPERTY(quint32              freeDiskSpace   READ freeDiskSpace                              NOTIFY freeDiskSpaceChanged)
     Q_PROPERTY(quint64              tileCount       READ tileCount                                  NOTIFY tileCountChanged)
@@ -97,6 +98,7 @@ public:
 
     static QStringList mapList();
     static QStringList mapProviderList();
+    static QStringList elevationProviderList();
 
 signals:
     void actionProgressChanged();
@@ -123,7 +125,7 @@ private slots:
     void _updateTotals(quint32 totaltiles, quint64 totalsize, quint32 defaulttiles, quint64 defaultsize);
 
 private:
-    void _updateDiskFreeSpace(); 
+    void _updateDiskFreeSpace();
 
     QmlObjectListModel *_tileSets = nullptr;
     QGCTileSet _imageSet;
@@ -142,4 +144,6 @@ private:
     QString _errorMessage;
     bool _fetchElevation = true;
     bool _importReplace = false;
+
+    static constexpr const char *kQmlOfflineMapKeyName = "QGCOfflineMap";
 };

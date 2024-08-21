@@ -9,6 +9,7 @@
 
 #include "TerrainQuery.h"
 #include "TerrainTileManager.h"
+#include "TerrainQueryAirMap.h"
 #include "QGCLoggingCategory.h"
 
 #include <QtCore/QTimer>
@@ -23,7 +24,7 @@ TerrainAtCoordinateBatchManager::TerrainAtCoordinateBatchManager(void)
     _batchTimer.setSingleShot(true);
     _batchTimer.setInterval(_batchTimeout);
     connect(&_batchTimer, &QTimer::timeout, this, &TerrainAtCoordinateBatchManager::_sendNextBatch);
-    connect(&_terrainQuery, &TerrainQueryInterface::coordinateHeightsReceived, this, &TerrainAtCoordinateBatchManager::_coordinateHeights);
+    connect(_terrainQuery, &TerrainQueryInterface::coordinateHeightsReceived, this, &TerrainAtCoordinateBatchManager::_coordinateHeights);
 }
 
 void TerrainAtCoordinateBatchManager::addQuery(TerrainAtCoordinateQuery* terrainAtCoordinateQuery, const QList<QGeoCoordinate>& coordinates)
@@ -71,7 +72,7 @@ void TerrainAtCoordinateBatchManager::_sendNextBatch(void)
     qCDebug(TerrainQueryLog) << "TerrainAtCoordinateBatchManager::_sendNextBatch requesting next batch _state:_requestQueue.count:_sentRequests.count" << _stateToString(_state) << _requestQueue.count() << _sentRequests.count();
 
     _state = State::Downloading;
-    _terrainQuery.requestCoordinateHeights(coords);
+    _terrainQuery->requestCoordinateHeights(coords);
 }
 
 void TerrainAtCoordinateBatchManager::_batchFailed(void)
@@ -184,12 +185,12 @@ TerrainPathQuery::TerrainPathQuery(bool autoDelete)
    : _autoDelete   (autoDelete)
 {
     qRegisterMetaType<PathHeightInfo_t>();
-    connect(&_terrainQuery, &TerrainQueryInterface::pathHeightsReceived, this, &TerrainPathQuery::_pathHeights);
+    connect(_terrainQuery, &TerrainQueryInterface::pathHeightsReceived, this, &TerrainPathQuery::_pathHeights);
 }
 
 void TerrainPathQuery::requestData(const QGeoCoordinate& fromCoord, const QGeoCoordinate& toCoord)
 {
-    _terrainQuery.requestPathHeights(fromCoord, toCoord);
+    _terrainQuery->requestPathHeights(fromCoord, toCoord);
 }
 
 void TerrainPathQuery::_pathHeights(bool success, double distanceBetween, double finalDistanceBetween, const QList<double>& heights)

@@ -2,7 +2,8 @@
 
 #include "MapProvider.h"
 
-static constexpr const quint32 AVERAGE_COPERNICUS_ELEV_SIZE = 2786;
+static constexpr quint32 AVERAGE_COPERNICUS_ELEV_SIZE = 2786;
+static constexpr quint32 AVERAGE_ARDUPILOT_ELEV_SIZE = 100000;
 
 class ElevationProvider : public MapProvider
 {
@@ -48,4 +49,33 @@ private:
     QString _getURL(int x, int y, int zoom) const final;
 
     const QString _mapUrl = QStringLiteral("https://terrain-ce.suite.auterion.com/api/v1/carpet?points=%1,%2,%3,%4");
+};
+
+class ArduPilotTerrainElevationProvider : public ElevationProvider
+{
+public:
+    ArduPilotTerrainElevationProvider()
+        : ElevationProvider(
+            QStringLiteral("ArduPilot Terrain Elevation"),
+            QStringLiteral("https://terrain.ardupilot.org/SRTM1/"),
+            QStringLiteral("hgt"),
+            AVERAGE_ARDUPILOT_ELEV_SIZE,
+            QGeoMapType::StreetMap) {}
+
+    int long2tileX(double lon, int z) const final;
+    int lat2tileY(double lat, int z) const final;
+
+    QGCTileSet getTileCount(int zoom, double topleftLon,
+                            double topleftLat, double bottomRightLon,
+                            double bottomRightLat) const final;
+
+    QByteArray serialize(const QByteArray &image) const final;
+
+    static constexpr const char *kProviderKey = "ArduPilot Terrain Elevation";
+    static constexpr const char *kProviderNotice = "© ArduPilot.org";
+
+private:
+    QString _getURL(int x, int y, int zoom) const final;
+
+    const QString _mapUrl = QStringLiteral("https://terrain.ardupilot.org/SRTM1/%1%2.hgt.zip");
 };
