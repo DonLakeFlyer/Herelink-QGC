@@ -1,4 +1,4 @@
-name: Android-Linux
+name: Herelink-Linux
 
 on:
   push:
@@ -14,10 +14,6 @@ on:
     paths-ignore:
       - 'deploy/**'
       - 'docs/**'
-      - '.github/workflows/docs_deploy.yml'
-      - '.github/workflows/linux.yml'
-      - '.github/workflows/macos.yml'
-      - '.github/workflows/windows.yml'
 
 jobs:
   build:
@@ -35,8 +31,8 @@ jobs:
       ARTIFACT: QGroundControl.apk
       QT_VERSION: 6.6.3
       GST_VERSION: 1.22.12
-      QT_ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/deploy/android/android_release.keystore
-      QT_ANDROID_KEYSTORE_ALIAS: QGCAndroidKeyStore
+      QT_ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/custom/android/debug.keystore
+      QT_ANDROID_KEYSTORE_ALIAS: androiddebugkey
       QT_ANDROID_KEYSTORE_STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       QT_ANDROID_KEYSTORE_KEY_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       QT_ANDROID_ABIS: ${{ matrix.BuildType == 'Release' && 'armeabi-v7a;arm64-v8a' || 'arm64-v8a' }}
@@ -80,7 +76,7 @@ jobs:
               -DQT_ANDROID_ABIS="${{ env.QT_ANDROID_ABIS }}"
               -DQT_ANDROID_BUILD_ALL_ABIS=OFF
               -DQT_HOST_PATH="${{ env.QT_ROOT_DIR }}/../gcc_64"
-              -DQT_ANDROID_SIGN_APK=${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' && 'ON' || 'OFF' }}
+              -DQT_ANDROID_SIGN_APK='ON'
               -DQT_DEBUG_FIND_PACKAGE=ON
               -DQGC_STABLE_BUILD=${{ github.ref_type == 'tag' || contains(github.ref, 'Stable') && 'ON' || 'OFF' }}
 
@@ -90,11 +86,9 @@ jobs:
 
       - run: cp ${{ runner.temp }}/shadow_build_dir/android-build/*.apk ${{ runner.temp }}/shadow_build_dir/${{ env.ARTIFACT }}
 
-      - name: Upload Build File
+      - name: Save artifact
         if: matrix.BuildType == 'Release'
-        uses: ./.github/actions/upload
+        uses: actions/upload-artifact@v4
         with:
-          artifact_name: ${{ env.ARTIFACT }}
-          aws_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          source: ''
+            name: ${{ env.ARTIFACT }}
+            path: ${{ runner.temp }}/shadow_build_dir/${{ env.ARTIFACT }}
