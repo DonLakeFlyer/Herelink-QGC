@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
  * QGroundControl is licensed according to the terms in the file
  * COPYING.md in the root of the source code directory.
@@ -1302,7 +1302,8 @@ void MockLink::_sendGpsRawInt(void)
                                       (int32_t)(_vehicleLatitude  * 1E7),
                                       (int32_t)(_vehicleLongitude * 1E7),
                                       (int32_t)(_vehicleAltitudeAMSL  * 1000),
-                                      UINT16_MAX, UINT16_MAX,               // HDOP/VDOP not known
+                                      3 * 100,                              // hdop
+                                      3 * 100,                              // vdop
                                       UINT16_MAX,                           // velocity not known
                                       UINT16_MAX,                           // course over ground not known
                                       8,                                    // satellites visible
@@ -1433,7 +1434,7 @@ MockConfiguration::MockConfiguration(const QString& name)
 
 }
 
-MockConfiguration::MockConfiguration(MockConfiguration* source)
+MockConfiguration::MockConfiguration(const MockConfiguration* source)
     : LinkConfiguration(source)
 {
     _firmwareType       = source->_firmwareType;
@@ -1443,10 +1444,10 @@ MockConfiguration::MockConfiguration(MockConfiguration* source)
     _failureMode        = source->_failureMode;
 }
 
-void MockConfiguration::copyFrom(LinkConfiguration *source)
+void MockConfiguration::copyFrom(const LinkConfiguration *source)
 {
     LinkConfiguration::copyFrom(source);
-    auto* usource = qobject_cast<MockConfiguration*>(source);
+    const MockConfiguration* usource = qobject_cast<const MockConfiguration*>(source);
 
     if (!usource) {
         qCWarning(MockLinkLog) << "dynamic_cast failed" << source << usource;

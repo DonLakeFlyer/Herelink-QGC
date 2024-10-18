@@ -30,9 +30,6 @@ ApplicationWindow {
     minimumHeight:  ScreenTools.isMobile ? ScreenTools.screenHeight : Math.min(ScreenTools.defaultFontPixelWidth * 50, Screen.height)
     visible:        true
 
-    property string _startTimeStamp
-    property bool   _showVisible
-    property string _flightID
     property bool   _utmspSendActTrigger
     property bool   _utmspStartTelemetry
 
@@ -90,9 +87,10 @@ ApplicationWindow {
         readonly property var       planMasterControllerFlyView:    flyView.planController
         readonly property var       guidedControllerFlyView:        flyView.guidedController
 
-        property bool               validationError:                false   // There is a FactTextField somewhere with a validation error
+        // Number of QGCTextField's with validation errors. Used to prevent closing panels with validation errors.
+        property int                validationErrorCount:           0 
 
-        // Property to manage RemoteID quick acces to settings page
+        // Property to manage RemoteID quick access to settings page
         property bool               commingFromRIDIndicator:        false
     }
 
@@ -112,9 +110,13 @@ ApplicationWindow {
     //-------------------------------------------------------------------------
     //-- Global Scope Functions
 
-    /// @return true: View switches are not currently allowed
-    function preventViewSwitch() {
-        return globals.validationError
+    // This function is used to prevent view switching if there are validation errors
+    function allowViewSwitch() {
+        // Run validation on active focus control to ensure it is valid before switching views
+        if (mainWindow.activeFocusControl instanceof QGCTextField) {
+            mainWindow.activeFocusControl.onEditingFinished()
+        }
+        return globals.validationErrorCount === 0
     }
 
     function showPlanView() {
@@ -255,14 +257,6 @@ ApplicationWindow {
         id:             planView
         anchors.fill:   parent
         visible:        false
-
-        onActivationParamsSent:{
-            if(_utmspEnabled){
-                _startTimeStamp = startTime
-                _showVisible = activate
-                _flightID = flightID
-            }
-        }
     }
 
     footer: LogReplayStatusBar {
@@ -270,7 +264,7 @@ ApplicationWindow {
     }
 
     function showToolSelectDialog() {
-        if (!mainWindow.preventViewSwitch()) {
+        if (mainWindow.allowViewSwitch()) {
             mainWindow.showIndicatorDrawer(toolSelectComponent, null)
         }
     }
@@ -300,10 +294,9 @@ ApplicationWindow {
                             height:             toolSelectDialog._toolButtonHeight
                             Layout.fillWidth:   true
                             text:               qsTr("Vehicle Setup")
-                            imageColor:         qgcPal.text
                             imageResource:      "/qmlimages/Gears.svg"
                             onClicked: {
-                                if (!mainWindow.preventViewSwitch()) {
+                                if (mainWindow.allowViewSwitch()) {
                                     mainWindow.closeIndicatorDrawer()
                                     mainWindow.showVehicleSetupTool()
                                 }
@@ -316,10 +309,9 @@ ApplicationWindow {
                             Layout.fillWidth:   true
                             text:               qsTr("Analyze Tools")
                             imageResource:      "/qmlimages/Analyze.svg"
-                            imageColor:         qgcPal.text
                             visible:            QGroundControl.corePlugin.showAdvancedUI
                             onClicked: {
-                                if (!mainWindow.preventViewSwitch()) {
+                                if (mainWindow.allowViewSwitch()) {
                                     mainWindow.closeIndicatorDrawer()
                                     mainWindow.showAnalyzeTool()
                                 }
@@ -335,7 +327,7 @@ ApplicationWindow {
                             imageColor:         "transparent"
                             visible:            !QGroundControl.corePlugin.options.combineSettingsAndSetup
                             onClicked: {
-                                if (!mainWindow.preventViewSwitch()) {
+                                if (mainWindow.allowViewSwitch()) {
                                     drawer.close()
                                     mainWindow.showSettingsTool()
                                 }
@@ -511,7 +503,9 @@ ApplicationWindow {
                 x:                  parent.mapFromItem(backIcon, backIcon.x, backIcon.y).x
                 width:              (backTextLabel.x + backTextLabel.width) - backIcon.x
                 onClicked: {
-                    toolDrawer.visible      = false
+                    if (mainWindow.allowViewSwitch()) {
+                        toolDrawer.visible = false
+                    }
                 }
             }
         }
@@ -843,9 +837,9 @@ ApplicationWindow {
 
     UTMSPActivationStatusBar{
          id:                         activationbar
-         activationStartTimestamp:  _startTimeStamp
-         activationApproval:        _showVisible && QGroundControl.utmspManager.utmspVehicle.vehicleActivation
-         flightID:                  _flightID
-         anchors.fill:              parent
+         activationStartTimestamp:   UTMSPStateStorage.startTimeStamp
+         activationApproval:         UTMSPStateStorage.showActivationTab && QGroundControl.utmspManager.utmspVehicle.vehicleActivation
+         flightID:                   UTMSPStateStorage.flightID
+         anchors.fill:               parent
     }
 }

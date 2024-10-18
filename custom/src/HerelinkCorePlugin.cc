@@ -50,7 +50,6 @@ bool HerelinkCorePlugin::adjustSettingMetaData(const QString& settingsGroup, Fac
             const std::list<const char *> disabledAndHiddenSettings = {
                 AutoConnectSettings::autoConnectPixhawkName,
                 AutoConnectSettings::autoConnectSiKRadioName,
-                AutoConnectSettings::autoConnectPX4FlowName,
                 AutoConnectSettings::autoConnectRTKGPSName,
                 AutoConnectSettings::autoConnectLibrePilotName,
                 AutoConnectSettings::autoConnectNmeaPortName,

@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.22.1)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH
+    ${CMAKE_SOURCE_DIR}/cmake
+    ${CMAKE_SOURCE_DIR}/cmake/modules
+    ${CMAKE_SOURCE_DIR}/cmake/find-modules
+)
 
 #######################################################
 #                Custom Build Configuration
@@ -58,6 +62,8 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
 set(CMAKE_INCLUDE_CURRENT_DIR OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release")
 if(NOT CMAKE_BUILD_TYPE)
@@ -83,30 +89,26 @@ elseif(WIN32)
         message(STATUS "Using SCCache")
         set(CMAKE_C_COMPILER_LAUNCHER ${SCCACHE_PROGRAM})
         set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE_PROGRAM})
-        if(MSVC)
-            if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-                string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-                string(REPLACE "/Zi" "/Z7" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
-            elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-                string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-                string(REPLACE "/Zi" "/Z7" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-            endif()
-            set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded)
+    endif()
+    if(MSVC)
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+            string(REPLACE "/Zi" "/Z7" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+        elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+            string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+            string(REPLACE "/Zi" "/Z7" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
         endif()
+        set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded)
     endif()
 endif()
 
-cmake_print_variables(
-    CMAKE_VERSION
-    CMAKE_PREFIX_PATH
-    CMAKE_HOST_SYSTEM_NAME
-    CMAKE_HOST_SYSTEM_VERSION
-    CMAKE_SYSTEM_NAME
-    CMAKE_SYSTEM_VERSION
-    CMAKE_CURRENT_SOURCE_DIR
-    CMAKE_BUILD_TYPE
-    CMAKE_TOOLCHAIN_FILE
-)
+if(CMAKE_CROSSCOMPILING AND ANDROID)
+    set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
+    set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
+    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
+endif()
+
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 #######################################################
 #               Qt6 Configuration
@@ -125,8 +127,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
         QT_NO_DEBUG_OUTPUT
     )
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    include(CTest)
+    set(ENABLE_TESTING ON)
     enable_testing()
+    include(CTest)
 
     set(QT_ENABLE_VERBOSE_DEPLOYMENT ON CACHE BOOL "Verbose Deployment")
 endif()
@@ -178,7 +181,10 @@ find_package(Qt6
         Xml
     OPTIONAL_COMPONENTS
         LinguistTools
+        MultimediaQuickPrivate
+        Quick3D
         SerialPort
+        WaylandClient
     HINTS
         ${QT_LIBRARY_HINTS}
 )
@@ -204,6 +210,8 @@ endif()
 cmake_dependent_option(QGC_BUILD_TESTING "Enable testing" ON "CMAKE_BUILD_TYPE STREQUAL Debug" OFF)
 if(QGC_BUILD_TESTING)
     add_compile_definitions(UNITTEST_BUILD) # TODO: QGC_UNITTEST_BUILD
+else()
+    set(BUILD_TESTING OFF CACHE INTERNAL "")
 endif()
 
 # option(QGC_DISABLE_MAVLINK_INSPECTOR "Disable Mavlink Inspector" OFF) # This removes QtCharts which is GPL licensed
@@ -219,6 +227,15 @@ cmake_dependent_option(QGC_NO_SERIAL_LINK "Build QGroundControl without Serial S
 if(QGC_DISABLE_APM_MAVLINK)
     add_compile_definitions(NO_ARDUPILOT_DIALECT)
 endif()
+
+if("${CMAKE_OSX_ARCHITECTURES}" MATCHES "arm64;x86_64" OR "${CMAKE_OSX_ARCHITECTURES}" MATCHES "x86_64;arm64")
+    set(MACOS_UNIVERSAL_BUILD ON CACHE INTERNAL "" FORCE)
+endif()
+
+# TODO: Force building dependencies if(NOT CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL CMAKE_SYSTEM_PROCESSOR)?
+# if(CMAKE_OSX_ARCHITECTURES AND NOT "${CMAKE_HOST_SYSTEM_PROCESSOR}" IN_LIST CMAKE_OSX_ARCHITECTURES)
+
+cmake_dependent_option(QGC_BUILD_DEPENDENCIES "Force Building of Dependencies." OFF "NOT CMAKE_CROSSCOMPILING;NOT MACOS_UNIVERSAL_BUILD" ON)
 
 #######################################################
 #                Custom Build Configuration
@@ -251,7 +268,8 @@ list(APPEND QGC_RESOURCES
     ${CMAKE_SOURCE_DIR}/src/FirmwarePlugin/PX4/PX4Resources.qrc
 )
 
-if(CONFIG_UTM_ADAPTER)
+if(QGC_UTM_ADAPTER)
+    add_definitions(-DQGC_UTM_ADAPTER)
     list(APPEND QGC_RESOURCES ${CMAKE_SOURCE_DIR}/src/UTMSP/utmsp.qrc)
 else()
     list(APPEND QGC_RESOURCES ${CMAKE_SOURCE_DIR}/src/UTMSP/dummy/utmsp_dummy.qrc)
@@ -271,26 +289,65 @@ qt_add_executable(${PROJECT_NAME}
 )
 
 if(Qt6LinguistTools_FOUND)
-    file(GLOB TS_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/translations/qgc_*.ts)
-    qt_add_translations(${PROJECT_NAME} TS_FILES ${TS_SOURCES}) # TODO: Update to new qt_add_translations form in Qt6.7
+    # TODO: Update to new qt_add_translations form in Qt6.7
+    file(GLOB TS_SOURCES ${CMAKE_SOURCE_DIR}/translations/qgc_*.ts)
+    set_source_files_properties(${TS_SOURCES} PROPERTIES OUTPUT_LOCATION "${CMAKE_BINARY_DIR}/i18n")
+    qt_add_translations(${PROJECT_NAME}
+        TS_FILES ${TS_SOURCES}
+        RESOURCE_PREFIX "/"
+        LUPDATE_OPTIONS -no-obsolete
+    )
 endif()
 
 set_target_properties(${PROJECT_NAME}
     PROPERTIES
         QT_RESOURCE_PREFIX "/qgc"
-        OUTPUT_NAME ${QGC_APP_NAME}
+        OUTPUT_NAME ${CMAKE_PROJECT_NAME}
 )
 
 if(WIN32)
-    set(app_icon_resource_windows "${CMAKE_SOURCE_DIR}/deploy/windows/QGroundControl.rc")
+    # windows installer files shared with core and custom
+    set(DEPLOY_WIN_FILES
+        "${CMAKE_SOURCE_DIR}/deploy/windows/driver.msi"
+        "${CMAKE_SOURCE_DIR}/deploy/windows/nullsoft_installer.nsi"
+        "${CMAKE_SOURCE_DIR}/deploy/windows/QGroundControl.rc"
+        "${CMAKE_SOURCE_DIR}/deploy/windows/resource.h"
+    )
+    # windows installer files different for core and custom
+    if(EXISTS ${CMAKE_SOURCE_DIR}/custom/deploy/windows/installheader.bmp)
+        list(APPEND DEPLOY_WIN_FILES ${CMAKE_SOURCE_DIR}/custom/deploy/windows/installheader.bmp)
+    else()
+        list(APPEND DEPLOY_WIN_FILES ${CMAKE_SOURCE_DIR}/deploy/windows/installheader.bmp)
+    endif()
+    if(EXISTS ${CMAKE_SOURCE_DIR}/custom/deploy/windows/WindowsQGC.ico)
+        list(APPEND DEPLOY_WIN_FILES ${CMAKE_SOURCE_DIR}/custom/deploy/windows/WindowsQGC.ico)
+    else()
+        list(APPEND DEPLOY_WIN_FILES ${CMAKE_SOURCE_DIR}/deploy/windows/WindowsQGC.ico)
+    endif()
+
+    # Destination directory where files will be copied
+    set(QGC_INSTALLER_SOURCE_WIN "${CMAKE_BINARY_DIR}/deploy/windows")
+    file(MAKE_DIRECTORY ${QGC_INSTALLER_SOURCE_WIN})
+    foreach(FILE ${DEPLOY_WIN_FILES})
+        # filename without the path
+        get_filename_component(FILE_NAME ${FILE} NAME)
+        # re-copy the file if it changes
+        add_custom_command(
+            OUTPUT "${QGC_INSTALLER_SOURCE_WIN}/${FILE_NAME}"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FILE}" "${QGC_INSTALLER_SOURCE_WIN}/${FILE_NAME}"
+            DEPENDS "${FILE}"  # Depend on the source file so that it re-copies when it changes
+        )
+        list(APPEND QGC_INSTALLER_SOURCE_WIN_FILES "${QGC_INSTALLER_SOURCE_WIN}/${FILE_NAME}")
+    endforeach()
+
     target_sources(${PROJECT_NAME}
         PRIVATE
-            ${app_icon_resource_windows}
+            ${QGC_INSTALLER_SOURCE_WIN_FILES}
     )
     set_target_properties(${PROJECT_NAME}
         PROPERTIES
             WIN32_EXECUTABLE TRUE
-            QT_TARGET_RC_ICONS "${CMAKE_SOURCE_DIR}/deploy/windows/WindowsQGC.ico"
+            QT_TARGET_RC_ICONS "${CMAKE_BINARY_DIR}/deploy/windows/WindowsQGC.ico"
     )
     add_compile_definitions(_USE_MATH_DEFINES)
 elseif(MACOS)
@@ -305,7 +362,7 @@ elseif(MACOS)
         PROPERTIES
             MACOSX_BUNDLE TRUE
             MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/deploy/mac/MacOSXBundleInfo.plist.in"
-            MACOSX_BUNDLE_BUNDLE_NAME "${QGC_APP_NAME}"
+            MACOSX_BUNDLE_BUNDLE_NAME "${CMAKE_PROJECT_NAME}"
             MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
             MACOSX_BUNDLE_COPYRIGHT "${QGC_APP_COPYRIGHT}"
             MACOSX_BUNDLE_GUI_IDENTIFIER "${QGC_BUNDLE_ID}"
@@ -316,9 +373,27 @@ elseif(MACOS)
     )
 elseif(IOS)
     enable_language(OBJC)
+
+    set(CMAKE_OSX_ARCHITECTURES "arm64")
+    set(CMAKE_OSX_SYSROOT "iphoneos")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0")
+    set(CMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "14.0")
+    set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2") # iPhone,iPad
+    set(CMAKE_XCODE_ATTRIBUTE_INFOPLIST_FILE "${CMAKE_CURRENT_SOURCE_DIR}/deploy/ios/iOS-Info.plist")
+
     set_target_properties(${PROJECT_NAME}
         PROPERTIES
             QT_IOS_LAUNCH_SCREEN ${CMAKE_SOURCE_DIR}/deploy/ios/QGCLaunchScreen.xib
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.mavlink.qgroundcontrol"
+            XCODE_ATTRIBUTE_PRODUCT_NAME ${CMAKE_PROJECT_NAME}
+            XCODE_ATTRIBUTE_CURRENT_PROJECT_VERSION ${CMAKE_PROJECT_VERSION}
+            XCODE_ATTRIBUTE_MARKETING_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+            XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
+            XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "14.0"
+            XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2" # iPhone,iPad
+            XCODE_ATTRIBUTE_INFOPLIST_KEY_CFBundleDisplayName ${CMAKE_PROJECT_NAME}
+            XCODE_ATTRIBUTE_INFOPLIST_KEY_LSApplicationCategoryType "public.app-category.mycategory"
+            XCODE_ATTRIBUTE_GCC_GENERATE_DEBUGGING_SYMBOLS "YES"
     )
 elseif(ANDROID)
     FetchContent_Declare(android_openssl
@@ -357,7 +432,7 @@ elseif(LINUX)
 endif()
 
 add_compile_definitions(
-    QGC_APP_NAME="${QGC_APP_NAME}"
+    QGC_APP_NAME="${CMAKE_PROJECT_NAME}"
     QGC_ORG_NAME="${QGC_ORG_NAME}"
     QGC_ORG_DOMAIN="${QGC_ORG_DOMAIN}"
     QGC_APP_VERSION_STR="${QGC_APP_VERSION_STR}"
@@ -379,15 +454,17 @@ if(QGC_BUILD_TESTING)
     target_link_libraries(${PROJECT_NAME} PRIVATE qgctest)
 endif()
 
-#######################################################
-#		Install Configuration
-#######################################################
-
 qt_import_plugins(${PROJECT_NAME}
     INCLUDE Qt6::QSvgPlugin
     EXCLUDE_BY_TYPE geoservices
     INCLUDE_BY_TYPE sqldrivers Qt6::QSQLiteDriverPlugin
 )
+
+#######################################################
+#		Install Configuration
+#######################################################
+
+include(InstallRequiredSystemLibraries)
 
 install(
     TARGETS ${PROJECT_NAME}
@@ -417,11 +494,19 @@ if(LINUX)
         FILES ${CMAKE_BINARY_DIR}/org.mavlink.qgroundcontrol.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications
     )
-    install(
-        FILES ${CMAKE_SOURCE_DIR}/resources/icons/qgroundcontrol.png
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/128x128/apps/
-        RENAME org.mavlink.qgroundcontrol.png
-    )
+    if(QGC_CUSTOM_BUILD)
+        install(
+            FILES ${CMAKE_SOURCE_DIR}/custom/res/icons/custom_qgroundcontrol.png
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/128x128/apps/
+            RENAME org.mavlink.qgroundcontrol.png
+        )
+    else()
+        install(
+            FILES ${CMAKE_SOURCE_DIR}/resources/icons/qgroundcontrol.png
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/128x128/apps/
+            RENAME org.mavlink.qgroundcontrol.png
+        )
+    endif()
     configure_file(
         ${CMAKE_SOURCE_DIR}/deploy/linux/org.mavlink.qgroundcontrol.metainfo.xml.in
         ${CMAKE_BINARY_DIR}/metainfo/org.mavlink.qgroundcontrol.metainfo.xml
@@ -431,10 +516,15 @@ if(LINUX)
         FILES ${CMAKE_BINARY_DIR}/metainfo/org.mavlink.qgroundcontrol.metainfo.xml
         DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo/
     )
+    install(
+        FILES ${CMAKE_SOURCE_DIR}/deploy/linux/AppRun
+        DESTINATION ${CMAKE_BINARY_DIR}
+    )
     install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/CreateAppImage.cmake")
 elseif(WIN32)
-    # install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/CreateQGCInstaller.cmake")
     install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/CreateWinInstaller.cmake")
 elseif(MACOS)
     install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/CreateMacDMG.cmake")
 endif()
+
+include(printSummary)

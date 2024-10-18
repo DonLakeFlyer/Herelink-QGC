@@ -29,17 +29,16 @@ SettingsPage {
         Repeater {
             id: autoConnectRepeater
 
-            model: [ 
+            model: [
                 _autoConnectSettings.autoConnectPixhawk,
                 _autoConnectSettings.autoConnectSiKRadio,
-                _autoConnectSettings.autoConnectPX4Flow,
                 _autoConnectSettings.autoConnectLibrePilot,
                 _autoConnectSettings.autoConnectUDP,
                 _autoConnectSettings.autoConnectZeroConf,
                 _autoConnectSettings.autoConnectRTKGPS,
             ]
 
-            property var names: [ qsTr("Pixhawk"), qsTr("SiK Radio"), qsTr("PX4 Flow"), qsTr("LibrePilot"), qsTr("UDP"), qsTr("Zero-Conf"), qsTr("RTK") ]
+            property var names: [ qsTr("Pixhawk"), qsTr("SiK Radio"), qsTr("LibrePilot"), qsTr("UDP"), qsTr("Zero-Conf"), qsTr("RTK") ]
 
             FactCheckBoxSlider {
                 Layout.fillWidth:   true
@@ -143,9 +142,9 @@ SettingsPage {
         id: linkDialogComponent
 
         QGCPopupDialog {
-            title:          originalConfig ? qsTr("Edit Link") : qsTr("Add New Link")
-            buttons:        Dialog.Save | Dialog.Cancel
-            acceptAllowed:  nameField.text !== ""
+            title:                  originalConfig ? qsTr("Edit Link") : qsTr("Add New Link")
+            buttons:                Dialog.Save | Dialog.Cancel
+            acceptButtonEnabled:    nameField.text !== ""
 
             property var originalConfig
             property var editingConfig

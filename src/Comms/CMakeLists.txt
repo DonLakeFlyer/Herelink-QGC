@@ -15,8 +15,6 @@ qt_add_library(Comms STATIC
     MAVLinkProtocol.h
     TCPLink.cc
     TCPLink.h
-    UdpIODevice.cc
-    UdpIODevice.h
     UDPLink.cc
     UDPLink.h
 )
@@ -51,6 +49,8 @@ else()
             QGCSerialPortInfo.h
             SerialLink.cc
             SerialLink.h
+            UdpIODevice.cc
+            UdpIODevice.h
     )
     target_link_libraries(Comms
         PRIVATE
@@ -90,7 +90,6 @@ endif()
 
 option(QGC_ZEROCONF_ENABLED "Enable ZeroConf Compatibility" OFF)
 if(QGC_ZEROCONF_ENABLED)
-    set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
     set(BUILD_DOC OFF CACHE INTERNAL "")
     set(BUILD_EXAMPLES OFF CACHE INTERNAL "")
     set(BUILD_TESTS OFF CACHE INTERNAL "")

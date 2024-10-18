@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
  * QGroundControl is licensed according to the terms in the file
  * COPYING.md in the root of the source code directory.
@@ -14,6 +14,10 @@
 #include <QtQml/QQmlEngine>
 #include <QtCore/QVariantList>
 
+#ifdef QGC_GST_STREAMING
+#include "GStreamer.h"
+#endif
+
 #ifndef QGC_DISABLE_UVC
 #include <QtMultimedia/QMediaDevices>
 #include <QtMultimedia/QCameraDevice>
@@ -25,7 +29,6 @@ DECLARE_SETTINGGROUP(Video, "Video")
 
     // Setup enum values for videoSource settings into meta data
     QVariantList videoSourceList;
-#ifdef QGC_GST_STREAMING
     videoSourceList.append(videoSourceRTSP);
     videoSourceList.append(videoSourceUDPH264);
     videoSourceList.append(videoSourceUDPH265);
@@ -36,7 +39,6 @@ DECLARE_SETTINGGROUP(Video, "Video")
     videoSourceList.append(videoSourceYuneecMantisG);
     videoSourceList.append(videoSourceHerelinkAirUnit);
     videoSourceList.append(videoSourceHerelinkHotspot);
-#endif
 #ifndef QGC_DISABLE_UVC
     QList<QCameraDevice> videoInputs = QMediaDevices::videoInputs();
     for (const auto& cameraDevice: videoInputs) {
@@ -58,30 +60,29 @@ DECLARE_SETTINGGROUP(Video, "Video")
 
     _nameToMetaDataMap[videoSourceName]->setEnumInfo(videoSourceCookedList, videoSourceList);
 
+#ifdef QGC_GST_STREAMING
     const QVariantList removeForceVideoDecodeList{
-#ifdef Q_OS_LINUX
-        VideoDecoderOptions::ForceVideoDecoderDirectX3D,
-        VideoDecoderOptions::ForceVideoDecoderVideoToolbox,
-#endif
-#ifdef Q_OS_WIN
-        VideoDecoderOptions::ForceVideoDecoderVAAPI,
-        VideoDecoderOptions::ForceVideoDecoderVideoToolbox,
-#endif
-#ifdef Q_OS_MAC
-        VideoDecoderOptions::ForceVideoDecoderDirectX3D,
-        VideoDecoderOptions::ForceVideoDecoderVAAPI,
-#endif
-#ifdef Q_OS_ANDROID
-        VideoDecoderOptions::ForceVideoDecoderDirectX3D,
-        VideoDecoderOptions::ForceVideoDecoderVideoToolbox,
-        VideoDecoderOptions::ForceVideoDecoderVAAPI,
-        VideoDecoderOptions::ForceVideoDecoderNVIDIA,
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+        GStreamer::VideoDecoderOptions::ForceVideoDecoderDirectX3D,
+        GStreamer::VideoDecoderOptions::ForceVideoDecoderVideoToolbox,
+#elif defined(Q_OS_WIN)
+        GStreamer::VideoDecoderOptions::ForceVideoDecoderVAAPI,
+        GStreamer::VideoDecoderOptions::ForceVideoDecoderVideoToolbox,
+#elif defined(Q_OS_MAC)
+        GStreamer::VideoDecoderOptions::ForceVideoDecoderDirectX3D,
+        GStreamer::VideoDecoderOptions::ForceVideoDecoderVAAPI,
+#elif defined(Q_OS_ANDROID)
+        GStreamer::VideoDecoderOptions::ForceVideoDecoderDirectX3D,
+        GStreamer::VideoDecoderOptions::ForceVideoDecoderVideoToolbox,
+        GStreamer::VideoDecoderOptions::ForceVideoDecoderVAAPI,
+        GStreamer::VideoDecoderOptions::ForceVideoDecoderNVIDIA,
 #endif
     };
 
-    for(const auto& value : removeForceVideoDecodeList) {
+    for (const auto &value : removeForceVideoDecodeList) {
         _nameToMetaDataMap[forceVideoDecoderName]->removeEnumInfo(value);
     }
+#endif
 
     // Set default value for videoSource
     _setDefaults();
@@ -131,10 +132,10 @@ DECLARE_SETTINGSFACT_NO_FUNC(VideoSettings, forceVideoDecoder)
         _forceVideoDecoderFact = _createSettingsFact(forceVideoDecoderName);
 
         _forceVideoDecoderFact->setVisible(
-#ifdef Q_OS_IOS
-            false
-#else
+#ifdef QGC_GST_STREAMING
             true
+#else
+            false
 #endif
         );
 

@@ -18,6 +18,10 @@ qt_add_library(QGC STATIC
     QGCToolbox.h
 )
 
+if(QGC_UTM_ADAPTER)
+    add_definitions(-DQGC_UTM_ADAPTER)
+endif()
+
 add_subdirectory(ADSB)
 add_subdirectory(AirLink)
 add_subdirectory(AnalyzeView)
@@ -79,6 +83,7 @@ target_link_libraries(QGC
         FollowMe
         Gimbal
         GPS
+        GStreamerReceiver
         Joystick
         MAVLink
         MissionManager

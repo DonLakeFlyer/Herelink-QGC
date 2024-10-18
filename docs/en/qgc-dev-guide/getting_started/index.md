@@ -15,7 +15,7 @@ Versions are provided for all platforms.
 ## Source Code
 
 Source code for _QGroundControl_ is kept on GitHub here: https://github.com/mavlink/qgroundcontrol.
-It is [dual-licensed under Apache 2.0 and GPLv3](https://github.com/mavlink/qgroundcontrol/blob/master/COPYING.md).
+It is [dual-licensed under Apache 2.0 and GPLv3](https://github.com/mavlink/qgroundcontrol/blob/master/.github/COPYING.md).
 
 To get the source files:
 
@@ -104,7 +104,7 @@ To see a complete list of all available components in the installer _Select Comp
 
 1. Install Additional Packages (Platform Specific)
 
-   - **Ubuntu:** `bash ./qgroundcontrol/tools/setup/install-dependencies-debian.sh
+   - **Ubuntu:** `sudo bash ./qgroundcontrol/tools/setup/install-dependencies-debian.sh`
    - **Fedora:** `sudo dnf install speech-dispatcher SDL2-devel SDL2 systemd-devel patchelf`
    - **Arch Linux:** `pacman -Sy speech-dispatcher patchelf`
    - **OSX** [Setup](https://doc.qt.io/qt-6/macos.html)

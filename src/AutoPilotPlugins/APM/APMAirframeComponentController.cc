@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
  * QGroundControl is licensed according to the terms in the file
  * COPYING.md in the root of the source code directory.
@@ -213,7 +213,7 @@ void APMAirframeComponentController::_loadParametersFromDownloadFile(const QStri
 
 void APMAirframeComponentController::loadParameters(const QString& paramFile)
 {
-    QGuiApplication::overrideCursor()->setShape(Qt::WaitCursor);
+    QGuiApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
 
     QString paramFileUrl = QStringLiteral("https://api.github.com/repos/ArduPilot/ardupilot/contents/Tools/Frame_params/%1?ref=master");
 
