@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
  * QGroundControl is licensed according to the terms in the file
  * COPYING.md in the root of the source code directory.
@@ -79,12 +79,8 @@ class VehicleBatteryFactGroup;
 class VehicleObjectAvoidance;
 class QGCToolbox;
 class GimbalController;
-#ifdef CONFIG_UTM_ADAPTER
+#ifdef QGC_UTM_ADAPTER
 class UTMSPVehicle;
-#endif
-#ifndef OPAQUE_PTR_VEHICLE
-    #define OPAQUE_PTR_VEHICLE
-    Q_DECLARE_OPAQUE_POINTER(Actuators*)
 #endif
 
 namespace events {
@@ -105,6 +101,7 @@ class Vehicle : public VehicleFactGroup
     Q_MOC_INCLUDE("Autotune.h")
     Q_MOC_INCLUDE("RemoteIDManager.h")
     Q_MOC_INCLUDE("QGCCameraManager.h")
+    Q_MOC_INCLUDE("Actuators/Actuators.h")
 
     friend class InitialConnectStateMachine;
     friend class VehicleLinkManager;
@@ -158,7 +155,6 @@ public:
     Q_PROPERTY(float                latitude                    READ latitude                                                       NOTIFY coordinateChanged)
     Q_PROPERTY(float                longitude                   READ longitude                                                      NOTIFY coordinateChanged)
     Q_PROPERTY(bool                 joystickEnabled             READ joystickEnabled            WRITE setJoystickEnabled            NOTIFY joystickEnabledChanged)
-    Q_PROPERTY(int                  flowImageIndex              READ flowImageIndex                                                 NOTIFY flowImageIndexChanged)
     Q_PROPERTY(int                  rcRSSI                      READ rcRSSI                                                         NOTIFY rcRSSIChanged)
     Q_PROPERTY(bool                 px4Firmware                 READ px4Firmware                                                    NOTIFY firmwareTypeChanged)
     Q_PROPERTY(bool                 apmFirmware                 READ apmFirmware                                                    NOTIFY firmwareTypeChanged)
@@ -246,6 +242,7 @@ public:
     Q_PROPERTY(bool     orbitModeSupported      READ orbitModeSupported                             CONSTANT)                   ///< Orbit mode is supported by this vehicle
     Q_PROPERTY(bool     roiModeSupported        READ roiModeSupported                               CONSTANT)                   ///< Orbit mode is supported by this vehicle
     Q_PROPERTY(bool     takeoffVehicleSupported READ takeoffVehicleSupported                        CONSTANT)                   ///< Guided takeoff supported
+    Q_PROPERTY(bool     changeHeadingSupported  READ changeHeadingSupported                         CONSTANT)                   ///< Change Heading supported
     Q_PROPERTY(QString  gotoFlightMode          READ gotoFlightMode                                 CONSTANT)                   ///< Flight mode vehicle is in while performing goto
     Q_PROPERTY(bool     haveMRSpeedLimits       READ haveMRSpeedLimits                              NOTIFY haveMRSpeedLimChanged)
     Q_PROPERTY(bool     haveFWSpeedLimits       READ haveFWSpeedLimits                              NOTIFY haveFWSpeedLimChanged)
@@ -326,6 +323,10 @@ public:
     ///     @param altitudeChange If > 0, go up by amount specified, if < 0, go down by amount specified
     ///     @param pauseVehicle true: pause vehicle prior to altitude change
     Q_INVOKABLE void guidedModeChangeAltitude(double altitudeChange, bool pauseVehicle);
+
+    /// Command vehicle to change yaw
+    ///     @param coordinate to rotate towards
+    Q_INVOKABLE void guidedModeChangeHeading(const QGeoCoordinate &headingCoord);
 
     /// Command vehicle to change groundspeed
     ///     @param groundspeed Target horizontal groundspeed
@@ -424,6 +425,7 @@ public:
     bool    orbitModeSupported      () const;
     bool    roiModeSupported        () const;
     bool    takeoffVehicleSupported () const;
+    bool    changeHeadingSupported  () const;
     QString gotoFlightMode          () const;
     bool    hasGripper              () const;
     bool haveMRSpeedLimits() const { return _multirotor_speed_limits_available; }
@@ -511,8 +513,6 @@ public:
     void setPrearmError(const QString& prearmError);
 
     QmlObjectListModel* cameraTriggerPoints () { return &_cameraTriggerPoints; }
-
-    int  flowImageIndex() const{ return _flowImageIndex; }
 
     //-- Mavlink Logging
     void startMavlinkLog();
@@ -841,7 +841,6 @@ signals:
     void checkListStateChanged          ();
     void longitudeChanged               ();
     void currentConfigChanged           ();
-    void flowImageIndexChanged          ();
     void rcRSSIChanged                  (int rcRSSI);
     void telemetryRRSSIChanged          (int value);
     void telemetryLRSSIChanged          (int value);
@@ -915,7 +914,6 @@ private slots:
     void _announceArmedChanged              (bool armed);
     void _offlineCruiseSpeedSettingChanged  (QVariant value);
     void _offlineHoverSpeedSettingChanged   (QVariant value);
-    void _imageProtocolImageReady           (void);
     void _prearmErrorTimeout                ();
     void _firstMissionLoadComplete          ();
     void _firstGeoFenceLoadComplete         ();
@@ -1068,7 +1066,7 @@ private:
     Autotune*                       _autotune                       = nullptr;
     GimbalController*               _gimbalController               = nullptr;
 
-#ifdef CONFIG_UTM_ADAPTER
+#ifdef QGC_UTM_ADAPTER
     UTMSPVehicle*                    _utmspVehicle                    = nullptr;
 #endif
 
@@ -1099,8 +1097,6 @@ private:
     //QMap<QString, ADSBVehicle*>     _trafficVehicleMap;
 
     // Toolbox references
-
-    int                         _flowImageIndex = 0;
 
     bool _allLinksRemovedSent = false; ///< true: allLinkRemoved signal already sent one time
 
@@ -1276,7 +1272,6 @@ private:
     RallyPointManager*              _rallyPointManager          = nullptr;
     VehicleLinkManager*             _vehicleLinkManager         = nullptr;
     FTPManager*                     _ftpManager                 = nullptr;
-    ImageProtocolManager*           _imageProtocolManager       = nullptr;
     InitialConnectStateMachine*     _initialConnectStateMachine = nullptr;
     Actuators*                      _actuators                  = nullptr;
     RemoteIDManager*                _remoteIDManager            = nullptr;
@@ -1362,6 +1357,23 @@ private:
 
     StatusTextHandler *m_statusTextHandler = nullptr;
 /*---------------------------------------------------------------------------*/
+/*===========================================================================*/
+/*                        Image Protocol Manager                             */
+/*===========================================================================*/
+private:
+    Q_PROPERTY(uint flowImageIndex READ flowImageIndex NOTIFY flowImageIndexChanged)
+
+public:
+    uint32_t flowImageIndex() const;
+
+signals:
+    void flowImageIndexChanged();
+
+private:
+    void _createImageProtocolManager();
+
+    ImageProtocolManager *_imageProtocolManager = nullptr;
 };
+/*---------------------------------------------------------------------------*/
 
 Q_DECLARE_METATYPE(Vehicle::MavCmdResultFailureCode_t)

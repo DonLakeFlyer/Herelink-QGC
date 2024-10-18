@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
  * QGroundControl is licensed according to the terms in the file
  * COPYING.md in the root of the source code directory.
@@ -190,7 +190,7 @@ void MAVLinkProtocol::receiveBytes(LinkInterface* link, QByteArray b)
     // Since receiveBytes signals cross threads we can end up with signals in the queue
     // that come through after the link is disconnected. For these we just drop the data
     // since the link is closed.
-    SharedLinkInterfacePtr linkPtr = _linkMgr->sharedLinkInterfacePointerForLink(link, true);
+    SharedLinkInterfacePtr linkPtr = _linkMgr->sharedLinkInterfacePointerForLink(link);
     if (!linkPtr) {
         qCDebug(MAVLinkProtocolLog) << "receiveBytes: link gone!" << b.size() << " bytes arrived too late";
         return;
@@ -406,7 +406,7 @@ void MAVLinkProtocol::setSystemId(int id)
 }
 
 /** @return Component id of this application */
-int MAVLinkProtocol::getComponentId()
+int MAVLinkProtocol::getComponentId() const
 {
     return MAV_COMP_ID_MISSIONPLANNER;
 }

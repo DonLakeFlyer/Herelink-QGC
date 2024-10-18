@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
  * QGroundControl is licensed according to the terms in the file
  * COPYING.md in the root of the source code directory.
@@ -23,10 +23,9 @@
 
 QGC_LOGGING_CATEGORY(LinkInterfaceLog, "LinkInterfaceLog")
 
-LinkInterface::LinkInterface(SharedLinkConfigurationPtr &config, bool isPX4Flow, QObject *parent)
+LinkInterface::LinkInterface(SharedLinkConfigurationPtr &config, QObject *parent)
     : QThread(parent)
     , _config(config)
-    , _isPX4Flow(isPX4Flow)
 {
     QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }

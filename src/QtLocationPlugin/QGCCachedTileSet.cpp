@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
  * QGroundControl is licensed according to the terms in the file
  * COPYING.md in the root of the source code directory.
@@ -33,8 +33,6 @@
 #include <QtNetwork/QNetworkProxy>
 
 QGC_LOGGING_CATEGORY(QGCCachedTileSetLog, "qgc.qtlocation.qgccachedtileset")
-
-#define TILE_BATCH_SIZE 256
 
 QGCCachedTileSet::QGCCachedTileSet(const QString &name, QObject *parent)
     : QObject(parent)
@@ -69,7 +67,7 @@ void QGCCachedTileSet::createDownloadTask()
         _noMoreTiles = false;
     }
 
-    QGCGetTileDownloadListTask* const task = new QGCGetTileDownloadListTask(_id, TILE_BATCH_SIZE);
+    QGCGetTileDownloadListTask* const task = new QGCGetTileDownloadListTask(_id, kTileBatchSize);
     (void) connect(task, &QGCGetTileDownloadListTask::tileListFetched, this, &QGCCachedTileSet::_tileListFetched);
     if (_manager) {
         (void) connect(task, &QGCMapTask::error, _manager, &QGCMapEngineManager::taskError);
@@ -92,7 +90,7 @@ void QGCCachedTileSet::resumeDownloadTask()
 void QGCCachedTileSet::_tileListFetched(const QQueue<QGCTile*> &tiles)
 {
     _batchRequested = false;
-    if (tiles.size() < TILE_BATCH_SIZE) {
+    if (tiles.size() < kTileBatchSize) {
         _noMoreTiles = true;
     }
 
@@ -103,7 +101,7 @@ void QGCCachedTileSet::_tileListFetched(const QQueue<QGCTile*> &tiles)
 
     if (!_networkManager) {
         _networkManager = new QNetworkAccessManager(this);
-#ifndef __mobile__
+#if !defined(Q_OS_IOS) && !defined(Q_OS_ANDROID)
         QNetworkProxy proxy = _networkManager->proxy();
         proxy.setType(QNetworkProxy::DefaultProxy);
         _networkManager->setProxy(proxy);

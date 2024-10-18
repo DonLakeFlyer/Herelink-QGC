@@ -3,20 +3,20 @@ find_package(Qt6 REQUIRED COMPONENTS Core Location Network Positioning Qml Sql)
 qt_add_plugin(QGCLocation STATIC
     CLASS_NAME QGeoServiceProviderFactoryQGC
     OUTPUT_TARGETS QGCLocation_targets
-    BingMapProvider.cpp
-    BingMapProvider.h
-    ElevationMapProvider.cpp
-    ElevationMapProvider.h
-    EsriMapProvider.cpp
-    EsriMapProvider.h
-    GenericMapProvider.cpp
-    GenericMapProvider.h
-    GoogleMapProvider.cpp
-    GoogleMapProvider.h
-    MapboxMapProvider.cpp
-    MapboxMapProvider.h
-    MapProvider.cpp
-    MapProvider.h
+    Providers/BingMapProvider.cpp
+    Providers/BingMapProvider.h
+    Providers/ElevationMapProvider.cpp
+    Providers/ElevationMapProvider.h
+    Providers/EsriMapProvider.cpp
+    Providers/EsriMapProvider.h
+    Providers/GenericMapProvider.cpp
+    Providers/GenericMapProvider.h
+    Providers/GoogleMapProvider.cpp
+    Providers/GoogleMapProvider.h
+    Providers/MapboxMapProvider.cpp
+    Providers/MapboxMapProvider.h
+    Providers/MapProvider.cpp
+    Providers/MapProvider.h
     QGCCachedTileSet.cpp
     QGCCachedTileSet.h
     QGCCacheTile.h
@@ -45,7 +45,6 @@ qt_add_plugin(QGCLocation STATIC
     QMLControl/QGCMapEngineManager.h
 )
 
-target_compile_definitions(QGCLocation PRIVATE CMAKE_LOCATION_PLUGIN)
 if(IOS)
     target_compile_definitions(QGCLocation PRIVATE QGC_NO_GOOGLE_MAPS)
 endif()
@@ -53,6 +52,7 @@ endif()
 target_link_libraries(QGCLocation
     PRIVATE
         Qt6::Positioning
+        Qt6::Sql
         QGC
         Settings
         Utilities
@@ -61,13 +61,13 @@ target_link_libraries(QGCLocation
         Qt6::Location
         Qt6::LocationPrivate
         Qt6::Network
-        Qt6::Sql
         QmlControls
 )
 
 target_include_directories(QGCLocation
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
+        Providers
         QMLControl
 )
 

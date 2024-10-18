@@ -40,10 +40,9 @@ Rectangle {
     property var    _corePlugin:                    QGroundControl.corePlugin
 
     function showSummaryPanel() {
-        if (mainWindow.preventViewSwitch()) {
-            return
+        if (mainWindow.allowViewSwitch()) {
+            _showSummaryPanel()
         }
-        _showSummaryPanel()
     }
 
     function _showSummaryPanel() {
@@ -62,48 +61,45 @@ Rectangle {
     }
 
     function showPanel(button, qmlSource) {
-        if (mainWindow.preventViewSwitch()) {
-            return
+        if (mainWindow.allowViewSwitch()) {
+            button.checked = true
+            panelLoader.setSource(qmlSource)
         }
-        button.checked = true
-        panelLoader.setSource(qmlSource)
     }
 
     function showVehicleComponentPanel(vehicleComponent)
     {
-        if (mainWindow.preventViewSwitch()) {
-            return
-        }
-        var autopilotPlugin = QGroundControl.multiVehicleManager.activeVehicle.autopilot
-        var prereq = autopilotPlugin.prerequisiteSetup(vehicleComponent)
-        if (prereq !== "") {
-            _messagePanelText = qsTr("%1 setup must be completed prior to %2 setup.").arg(prereq).arg(vehicleComponent.name)
-            panelLoader.setSourceComponent(messagePanelComponent)
-        } else {
-            panelLoader.setSource(vehicleComponent.setupSource, vehicleComponent)
-            for(var i = 0; i < componentRepeater.count; i++) {
-                var obj = componentRepeater.itemAt(i);
-                if (obj.text === vehicleComponent.name) {
-                    obj.checked = true
-                    break;
+        if (mainWindow.allowViewSwitch()) {
+            var autopilotPlugin = QGroundControl.multiVehicleManager.activeVehicle.autopilot
+            var prereq = autopilotPlugin.prerequisiteSetup(vehicleComponent)
+            if (prereq !== "") {
+                _messagePanelText = qsTr("%1 setup must be completed prior to %2 setup.").arg(prereq).arg(vehicleComponent.name)
+                panelLoader.setSourceComponent(messagePanelComponent)
+            } else {
+                panelLoader.setSource(vehicleComponent.setupSource, vehicleComponent)
+                for(var i = 0; i < componentRepeater.count; i++) {
+                    var obj = componentRepeater.itemAt(i);
+                    if (obj.text === vehicleComponent.name) {
+                        obj.checked = true
+                        break;
+                    }
                 }
             }
         }
     }
 
     function showNamedComponentPanel(panelButtonName) {
-        if (mainWindow.preventViewSwitch()) {
-            return
-        }
-        for (var i=0; i<componentRepeater.count; i++) {
-            var panelButton = componentRepeater.itemAt(i)
-            if (panelButton.text === panelButtonName) {
-                showVehicleComponentPanel(panelButton.componentUrl)
-                break;
+        if (mainWindow.allowViewSwitch()) {
+            for (var i=0; i<componentRepeater.count; i++) {
+                var panelButton = componentRepeater.itemAt(i)
+                if (panelButton.text === panelButtonName) {
+                    showVehicleComponentPanel(panelButton.componentUrl)
+                    break;
+                }
             }
-        }
-        if (panelButtonName === parametersButton.text) {
-            parametersButton.clicked()
+            if (panelButtonName === parametersButton.text) {
+                parametersButton.clicked()
+            }
         }
     }
 
@@ -249,13 +245,12 @@ Rectangle {
             }
 
             SubMenuButton {
-                id:                 px4FlowButton
-                buttonGroup:     setupButtonGroup
-                visible:            QGroundControl.multiVehicleManager.activeVehicle ? QGroundControl.multiVehicleManager.activeVehicle.vehicleLinkManager.primaryLinkIsPX4Flow : false
+                buttonGroup:        setupButtonGroup
+                visible:            QGroundControl.multiVehicleManager.activeVehicle ? QGroundControl.multiVehicleManager.activeVehicle.flowImageIndex > 0 : false
                 setupIndicator:     false
-                text:               qsTr("PX4Flow")
+                text:               qsTr("Optical Flow")
                 Layout.fillWidth:   true
-                onClicked:          showPanel(this, "PX4FlowSensor.qml")
+                onClicked:          showPanel(this, "OpticalFlowSensor.qml")
             }
 
             SubMenuButton {

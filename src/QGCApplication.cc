@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
  * QGroundControl is licensed according to the terms in the file
  * COPYING.md in the root of the source code directory.
@@ -27,6 +27,7 @@
 #include <QtQml/QQmlContext>
 #include <QtQml/QQmlApplicationEngine>
 
+#include "Audio/AudioOutput.h"
 #include "QGCConfig.h"
 #include "QGCApplication.h"
 #include "CmdLineOptParser.h"
@@ -95,6 +96,7 @@
 #include "CustomAction.h"
 #include "CustomActionManager.h"
 #include "AudioOutput.h"
+#include "FollowMe.h"
 #include "JsonHelper.h"
 // #ifdef QGC_VIEWER3D
 #include "Viewer3DManager.h"
@@ -187,7 +189,7 @@ QGCApplication::QGCApplication(int &argc, char* argv[], bool unitTesting)
     setOrganizationDomain(QGC_ORG_DOMAIN);
     setApplicationVersion(QString(QGC_APP_VERSION_STR));
     #ifdef Q_OS_LINUX
-        setWindowIcon(QIcon(":/res/resources/icons/qgroundcontrol.ico"));
+        setWindowIcon(QIcon(":/res/qgroundcontrol.ico"));
     #endif
 
     // Set settings format
@@ -390,10 +392,10 @@ void QGCApplication::init()
 
     // Although this should really be in _initForNormalAppBoot putting it here allowws us to create unit tests which pop up more easily
     if(QFontDatabase::addApplicationFont(":/fonts/opensans") < 0) {
-        qCWarning(QGCApplicationLog) << "Could not load /fonts/opensans font";
+        qWarning() << "Could not load /fonts/opensans font";
     }
     if(QFontDatabase::addApplicationFont(":/fonts/opensans-demibold") < 0) {
-        qCWarning(QGCApplicationLog) << "Could not load /fonts/opensans-demibold font";
+        qWarning() << "Could not load /fonts/opensans-demibold font";
     }
 
     if (!_runningUnitTests) {
@@ -405,7 +407,7 @@ void QGCApplication::init()
 
 void QGCApplication::_initForNormalAppBoot()
 {
-#ifdef Q_OS_DARWIN
+#ifdef QGC_GST_STREAMING
     // Gstreamer video playback requires OpenGL
     QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
 #endif
@@ -415,13 +417,10 @@ void QGCApplication::_initForNormalAppBoot()
     QObject::connect(_qmlAppEngine, &QQmlApplicationEngine::objectCreationFailed, this, QCoreApplication::quit, Qt::QueuedConnection);
     _toolbox->corePlugin()->createRootWindow(_qmlAppEngine);
 
-    ( void ) connect( _toolbox->settingsManager()->appSettings()->audioMuted(), &Fact::valueChanged, AudioOutput::instance(), []( QVariant value )
-    {
-        AudioOutput::instance()->setMuted( value.toBool() );
-    });
-    AudioOutput::instance()->setMuted( _toolbox->settingsManager()->appSettings()->audioMuted()->rawValue().toBool() );
+    AudioOutput::instance()->init(_toolbox->settingsManager()->appSettings()->audioMuted());
+    FollowMe::instance()->init();
 
-    // Image provider for PX4 Flow
+    // Image provider for Optical Flow
     _qmlAppEngine->addImageProvider(qgcImageProviderId, new QGCImageProvider());
 
     QQuickWindow* rootWindow = mainRootWindow();

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
  * QGroundControl is licensed according to the terms in the file
  * COPYING.md in the root of the source code directory.
@@ -390,14 +390,4 @@ QStringList VehicleLinkManager::linkStatuses(void) const
     }
 
     return rgStatuses;
-}
-
-bool VehicleLinkManager::primaryLinkIsPX4Flow(void) const
-{
-    SharedLinkInterfacePtr sharedLink = _primaryLink.lock();
-    if (!sharedLink) {
-        return false;
-    } else {
-        return sharedLink->isPX4Flow();
-    }
 }

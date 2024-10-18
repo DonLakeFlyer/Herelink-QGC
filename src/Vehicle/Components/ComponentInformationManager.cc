@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * (c) 2009-2020 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ * (c) 2009-2024 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
  *
  * QGroundControl is licensed according to the terms in the file
  * COPYING.md in the root of the source code directory.
@@ -262,7 +262,7 @@ void RequestMetaDataTypeStateMachine::_stateRequestCompInfo(StateMachine* stateM
 
     SharedLinkInterfacePtr sharedLink = vehicle->vehicleLinkManager()->primaryLink().lock();
     if (sharedLink) {
-        if (sharedLink->linkConfiguration()->isHighLatency() || sharedLink->isPX4Flow() || sharedLink->isLogReplay()) {
+        if (sharedLink->linkConfiguration()->isHighLatency() || sharedLink->isLogReplay()) {
             qCDebug(ComponentInformationManagerLog) << QStringLiteral("_stateRequestCompInfo Skipping component information %1 request due to link type").arg(requestMachine->typeToString());
             stateMachine->advance();
         } else {
@@ -296,7 +296,7 @@ void RequestMetaDataTypeStateMachine::_stateRequestCompInfoDeprecated(StateMachi
 
     SharedLinkInterfacePtr sharedLink = vehicle->vehicleLinkManager()->primaryLink().lock();
     if (sharedLink) {
-        if (sharedLink->linkConfiguration()->isHighLatency() || sharedLink->isPX4Flow() || sharedLink->isLogReplay()) {
+        if (sharedLink->linkConfiguration()->isHighLatency() || sharedLink->isLogReplay()) {
             qCDebug(ComponentInformationManagerLog) << QStringLiteral("_stateRequestCompInfo Skipping component information %1 request due to link type").arg(requestMachine->typeToString());
             stateMachine->advance();
         } else {
