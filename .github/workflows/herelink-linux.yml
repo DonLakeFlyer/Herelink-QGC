@@ -93,10 +93,3 @@ jobs:
         with:
             name: ${{ env.ARTIFACT }}
             path: ${{ runner.temp }}/shadow_build_dir/${{ env.ARTIFACT }}
-
-      # - name: Deploy to Play Store
-      #   if: matrix.BuildType == 'Release'
-      #   uses: ./.github/actions/playstore
-      #   with:
-      #     artifact_name: ${{ runner.temp }}/shadow_build_dir/${{ env.ARTIFACT }}
-      #     service_account_json: ${{ secrets.SERVICE_ACCOUNT }}
