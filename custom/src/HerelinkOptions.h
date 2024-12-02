@@ -2,12 +2,10 @@
 
 #include "QGCOptions.h"
 
-class HerelinkCorePlugin;
-
 class HerelinkOptions : public QGCOptions
 {
 public:
-    HerelinkOptions(HerelinkCorePlugin* plugin, QObject* parent = NULL);
+    HerelinkOptions(QObject* parent = NULL);
 
     // QGCOptions overrides
     bool wifiReliableForCalibration () const override { return true; }

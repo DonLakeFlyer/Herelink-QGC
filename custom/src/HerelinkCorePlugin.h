@@ -3,7 +3,6 @@
 #include "HerelinkOptions.h"
 
 #include "QGCCorePlugin.h"
-#include "QGCLoggingCategory.h"
 
 #include <QObject>
 
@@ -14,15 +13,14 @@ class HerelinkCorePlugin : public QGCCorePlugin
     Q_OBJECT
 
 public:
-    HerelinkCorePlugin(QGCApplication* app, QGCToolbox* toolbox);
+    HerelinkCorePlugin(QObject* parent = nullptr);
+
+    static QGCCorePlugin *instance();
 
     // Overrides from QGCCorePlugin
     QGCOptions* options                         (void) override { return qobject_cast<QGCOptions*>(_herelinkOptions); }
-    bool        overrideSettingsGroupVisibility (QString name) override;
-    bool        adjustSettingMetaData           (const QString& settingsGroup, FactMetaData& metaData) override;
-
-    // Overrides from QGCTool
-    void setToolbox(QGCToolbox* toolbox) override;
+    bool        overrideSettingsGroupVisibility (const QString &name) override;
+    bool        adjustSettingMetaData           (const QString &settingsGroup, FactMetaData &metaData) override;
 
 private slots:
     void _activeVehicleChanged(Vehicle* activeVehicle);
