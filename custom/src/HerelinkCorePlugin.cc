@@ -19,12 +19,23 @@ HerelinkCorePlugin::HerelinkCorePlugin(QObject* parent)
     : QGCCorePlugin(parent)
     , _herelinkOptions(new HerelinkOptions(this))
 {
-    connect(MultiVehicleManager::instance(), &MultiVehicleManager::activeVehicleChanged, this, &HerelinkCorePlugin::_activeVehicleChanged);
+
 }
 
 QGCCorePlugin *HerelinkCorePlugin::instance()
 {
     return _herelinkCorePluginInstance();
+}
+
+void HerelinkCorePlugin::init()
+{
+    static bool initialized = false;
+
+    if (!initialized) {
+        initialized = true;
+        QGCCorePlugin::init();
+        connect(MultiVehicleManager::instance(), &MultiVehicleManager::activeVehicleChanged, this, &HerelinkCorePlugin::_activeVehicleChanged);
+    }
 }
 
 bool HerelinkCorePlugin::overrideSettingsGroupVisibility(const QString &name)

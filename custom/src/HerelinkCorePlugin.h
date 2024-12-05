@@ -18,6 +18,7 @@ public:
     static QGCCorePlugin *instance();
 
     // Overrides from QGCCorePlugin
+    void        init                            (void) override;
     QGCOptions* options                         (void) override { return qobject_cast<QGCOptions*>(_herelinkOptions); }
     bool        overrideSettingsGroupVisibility (const QString &name) override;
     bool        adjustSettingMetaData           (const QString &settingsGroup, FactMetaData &metaData) override;
