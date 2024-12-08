@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.mavlink.qgroundcontrol"
+    package="org.cubepilot.herelink_qgc"
     android:installLocation="auto"
     android:versionCode="-- %%INSERT_VERSION_CODE%% --"
     android:versionName="-- %%INSERT_VERSION_NAME%% --">
@@ -13,7 +13,6 @@
 
     <!-- %%INSERT_PERMISSIONS -->
 
-    <uses-permission android:name="android.permission.USB_PERMISSION" />
     <!-- Need MulticastLock to receive broadcast UDP packets -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <!-- Needed to keep working while 'asleep' -->
