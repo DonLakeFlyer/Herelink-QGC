@@ -28,7 +28,6 @@
 #include <QGCApplication.h>
 #include <QGCFileDownload.h>
 #include <QGCLoggingCategory.h>
-#include <TerrainTile.h>
 
 #include <QtNetwork/QNetworkProxy>
 
@@ -61,6 +60,11 @@ QString QGCCachedTileSet::downloadStatus() const
 
 void QGCCachedTileSet::createDownloadTask()
 {
+    if (_cancelPending) {
+        setDownloading(false);
+        return;
+    }
+
     if (!_downloading) {
         setErrorCount(0);
         setDownloading(true);
@@ -82,9 +86,15 @@ void QGCCachedTileSet::createDownloadTask()
 
 void QGCCachedTileSet::resumeDownloadTask()
 {
+    _cancelPending = false;
     QGCUpdateTileDownloadStateTask* const task = new QGCUpdateTileDownloadStateTask(_id, QGCTile::StatePending, "*");
     getQGCMapEngine()->addTask(task);
     createDownloadTask();
+}
+
+void QGCCachedTileSet::cancelDownloadTask()
+{
+    _cancelPending = true;
 }
 
 void QGCCachedTileSet::_tileListFetched(const QQueue<QGCTile*> &tiles)

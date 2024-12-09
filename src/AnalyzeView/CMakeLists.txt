@@ -44,6 +44,11 @@ target_link_libraries(AnalyzeView
 
 target_include_directories(AnalyzeView PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+target_precompile_headers(AnalyzeView
+    PRIVATE
+        <QtCharts/QAbstractSeries>
+)
+
 #===========================================================================#
 
 include(FetchContent)
@@ -101,7 +106,6 @@ if(NOT exiv2_FOUND AND NOT LibExiv2_FOUND)
         GIT_REPOSITORY https://github.com/Exiv2/exiv2.git
         GIT_TAG v0.28.3
         GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
     )
     set(EXIV2_ENABLE_XMP OFF CACHE INTERNAL "" FORCE)
     set(EXIV2_ENABLE_EXTERNAL_XMP OFF CACHE INTERNAL "" FORCE)

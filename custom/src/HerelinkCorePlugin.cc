@@ -4,32 +4,41 @@
 #include "VideoSettings.h"
 #include "AppSettings.h"
 #include "QGCApplication.h"
-#include "QGCToolbox.h"
 #include "MultiVehicleManager.h"
 #include "JoystickManager.h"
 #include "Vehicle.h"
+#include "QGCLoggingCategory.h"
 
 #include <list>
 
 QGC_LOGGING_CATEGORY(HerelinkCorePluginLog, "HerelinkCorePluginLog")
 
-HerelinkCorePlugin::HerelinkCorePlugin(QGCApplication *app, QGCToolbox* toolbox)
-    : QGCCorePlugin(app, toolbox)
+Q_APPLICATION_STATIC(HerelinkCorePlugin, _herelinkCorePluginInstance);
+
+HerelinkCorePlugin::HerelinkCorePlugin(QObject* parent)
+    : QGCCorePlugin(parent)
+    , _herelinkOptions(new HerelinkOptions(this))
 {
 
 }
 
-void HerelinkCorePlugin::setToolbox(QGCToolbox* toolbox)
+QGCCorePlugin *HerelinkCorePlugin::instance()
 {
-    QGCCorePlugin::setToolbox(toolbox);
-
-    _herelinkOptions = new HerelinkOptions(this, nullptr);
-
-    auto multiVehicleManager = qgcApp()->toolbox()->multiVehicleManager();
-    connect(multiVehicleManager, &MultiVehicleManager::activeVehicleChanged, this, &HerelinkCorePlugin::_activeVehicleChanged);
+    return _herelinkCorePluginInstance();
 }
 
-bool HerelinkCorePlugin::overrideSettingsGroupVisibility(QString name)
+void HerelinkCorePlugin::init()
+{
+    static bool initialized = false;
+
+    if (!initialized) {
+        initialized = true;
+        QGCCorePlugin::init();
+        connect(MultiVehicleManager::instance(), &MultiVehicleManager::activeVehicleChanged, this, &HerelinkCorePlugin::_activeVehicleChanged);
+    }
+}
+
+bool HerelinkCorePlugin::overrideSettingsGroupVisibility(const QString &name)
 {
     // Hide all AutoConnect settings
     return name != AutoConnectSettings::name;
@@ -81,7 +90,7 @@ void HerelinkCorePlugin::_activeVehicleChanged(Vehicle* activeVehicle)
     if (activeVehicle) {
         QString herelinkButtonsJoystickName("gpio-keys");
 
-        auto joystickManager = qgcApp()->toolbox()->joystickManager();
+        auto joystickManager = JoystickManager::instance();
         if (joystickManager->activeJoystickName() != herelinkButtonsJoystickName) {
             if (!joystickManager->setActiveJoystickName(herelinkButtonsJoystickName)) {
                 qgcApp()->showAppMessage("Warning: Herelink buttton setup failed. Buttons will not work.");

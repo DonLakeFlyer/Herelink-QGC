@@ -51,6 +51,7 @@ static QMap<int, QString> px4_board_name_map {
     {54, "px4_fmu-v6u_default"},
     {56, "px4_fmu-v6c_default"},
     {57, "ark_fmu-v6x_default"},
+    {59, "ark_fpv_default"},
     {35, "px4_fmu-v6xrt_default"},
     {55, "sky-drones_smartap-airlink_default"},
     {88, "airmind_mindpx-v2_default"},
@@ -86,9 +87,12 @@ static QMap<int, QString> px4_board_name_map {
     {1048, "holybro_kakuteh7_default"},
     {1053, "holybro_kakuteh7v2_default"},
     {1054, "holybro_kakuteh7mini_default"},
+    {1058, "holybro_kakuteh7mini_default"},
     {1110, "jfb_jfb110_default"},
     {1123, "siyi_n7_default"},    
     {1124, "3dr_ctrl-zero-h7-oem-revg_default"},
+    {5600, "zeroone_x6_default"},
+    {7000, "cuav_7-nano_default"},
 };
 
 uint qHash(const FirmwareUpgradeController::FirmwareIdentifier& firmwareId)
@@ -100,15 +104,15 @@ uint qHash(const FirmwareUpgradeController::FirmwareIdentifier& firmwareId)
 
 /// @Brief Constructs a new FirmwareUpgradeController Widget. This widget is used within the PX4VehicleConfig set of screens.
 FirmwareUpgradeController::FirmwareUpgradeController(void)
-    : _singleFirmwareURL                (qgcApp()->toolbox()->corePlugin()->options()->firmwareUpgradeSingleURL())
+    : _singleFirmwareURL                (QGCCorePlugin::instance()->options()->firmwareUpgradeSingleURL())
     , _singleFirmwareMode               (!_singleFirmwareURL.isEmpty())
     , _downloadingFirmwareList          (false)
     , _statusLog                        (nullptr)
     , _selectedFirmwareBuildType        (StableFirmware)
     , _image                            (nullptr)
     , _apmBoardDescriptionReplaceText   ("<APMBoardDescription>")
-    , _apmChibiOSSetting                (qgcApp()->toolbox()->settingsManager()->firmwareUpgradeSettings()->apmChibiOS())
-    , _apmVehicleTypeSetting            (qgcApp()->toolbox()->settingsManager()->firmwareUpgradeSettings()->apmVehicleType())
+    , _apmChibiOSSetting                (SettingsManager::instance()->firmwareUpgradeSettings()->apmChibiOS())
+    , _apmVehicleTypeSetting            (SettingsManager::instance()->firmwareUpgradeSettings()->apmVehicleType())
 {
     _manifestMavFirmwareVersionTypeToFirmwareBuildTypeMap["OFFICIAL"] =  StableFirmware;
     _manifestMavFirmwareVersionTypeToFirmwareBuildTypeMap["BETA"] =      BetaFirmware;
@@ -151,19 +155,17 @@ FirmwareUpgradeController::FirmwareUpgradeController(void)
 
 FirmwareUpgradeController::~FirmwareUpgradeController()
 {
-    qgcApp()->toolbox()->linkManager()->setConnectionsAllowed();
+    LinkManager::instance()->setConnectionsAllowed();
 }
 
 void FirmwareUpgradeController::startBoardSearch(void)
 {
-    LinkManager* linkMgr = qgcApp()->toolbox()->linkManager();
-
-    linkMgr->setConnectionsSuspended(tr("Connect not allowed during Firmware Upgrade."));
+    LinkManager::instance()->setConnectionsSuspended(tr("Connect not allowed during Firmware Upgrade."));
 
     // FIXME: Why did we get here with active vehicle?
-    if (!qgcApp()->toolbox()->multiVehicleManager()->activeVehicle()) {
+    if (!MultiVehicleManager::instance()->activeVehicle()) {
         // We have to disconnect any inactive links
-        linkMgr->disconnectAll();
+        LinkManager::instance()->disconnectAll();
     }
 
     _bootloaderFound = false;
@@ -432,7 +434,7 @@ void FirmwareUpgradeController::_flashComplete(void)
     _appendStatusLog(tr("Upgrade complete"), true);
     _appendStatusLog("------------------------------------------", false);
     emit flashComplete();
-    qgcApp()->toolbox()->linkManager()->setConnectionsAllowed();
+    LinkManager::instance()->setConnectionsAllowed();
 }
 
 void FirmwareUpgradeController::_error(const QString& errorString)
@@ -489,7 +491,7 @@ void FirmwareUpgradeController::_errorCancel(const QString& msg)
     _appendStatusLog("------------------------------------------", false);
     emit error();
     cancel();
-    qgcApp()->toolbox()->linkManager()->setConnectionsAllowed();
+    LinkManager::instance()->setConnectionsAllowed();
 }
 
 void FirmwareUpgradeController::_eraseStarted(void)

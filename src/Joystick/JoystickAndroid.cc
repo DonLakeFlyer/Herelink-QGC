@@ -9,7 +9,6 @@
 
 #include "JoystickAndroid.h"
 #include "JoystickManager.h"
-#include "MultiVehicleManager.h"
 #include "QGCLoggingCategory.h"
 
 #include <QtCore/QJniEnvironment>
@@ -32,8 +31,8 @@ static void clear_jni_exception()
     }
 }
 
-JoystickAndroid::JoystickAndroid(const QString& name, int axisCount, int buttonCount, int id, MultiVehicleManager* multiVehicleManager)
-    : Joystick(name,axisCount,buttonCount,0,multiVehicleManager)
+JoystickAndroid::JoystickAndroid(const QString& name, int axisCount, int buttonCount, int id)
+    : Joystick(name,axisCount,buttonCount,0)
     , deviceId(id)
 {
     int i;
@@ -95,7 +94,7 @@ JoystickAndroid::~JoystickAndroid() {
 }
 
 
-QMap<QString, Joystick*> JoystickAndroid::discover(MultiVehicleManager* _multiVehicleManager) {
+QMap<QString, Joystick*> JoystickAndroid::discover() {
     static QMap<QString, Joystick*> ret;
 
     QMutexLocker lock(&m_mutex);
@@ -144,7 +143,7 @@ QMap<QString, Joystick*> JoystickAndroid::discover(MultiVehicleManager* _multiVe
 
         qCDebug(JoystickLog) << "\t" << name << "id:" << buff[i] << "axes:" << axisCount << "buttons:" << buttonCount;
 
-        ret[name] = new JoystickAndroid(name, axisCount, buttonCount, buff[i], _multiVehicleManager);
+        ret[name] = new JoystickAndroid(name, axisCount, buttonCount, buff[i]);
     }
 
     for (auto i = ret.begin(); i != ret.end();) {
@@ -242,12 +241,8 @@ bool JoystickAndroid::_getHat(int hat,int i) {
     }
 }
 
-static JoystickManager *_manager = nullptr;
-
 //helper method
-bool JoystickAndroid::init(JoystickManager *manager) {
-    _manager = manager;
-
+bool JoystickAndroid::init() {
     //this gets list of all possible buttons - this is needed to check how many buttons our gamepad supports
     //instead of the whole logic below we could have just a simple array of hardcoded int values as these 'should' not change
 
@@ -289,17 +284,15 @@ bool JoystickAndroid::init(JoystickManager *manager) {
     return true;
 }
 
-static const char kJniClassName[] {"org/mavlink/qgroundcontrol/QGCActivity"};
+static const char kJniClassName[] {"org/mavlink/qgroundcontrol/QGCUsbSerialManager"};
 
 static void jniUpdateAvailableJoysticks(JNIEnv *envA, jobject thizA)
 {
     Q_UNUSED(envA);
     Q_UNUSED(thizA);
 
-    if (_manager != nullptr) {
-        qCDebug(JoystickLog) << "jniUpdateAvailableJoysticks triggered";
-        emit _manager->updateAvailableJoysticksSignal();
-    }
+    qCDebug(JoystickLog) << "jniUpdateAvailableJoysticks triggered";
+    emit JoystickManager::instance()->updateAvailableJoysticksSignal();
 }
 
 void JoystickAndroid::setNativeMethods()

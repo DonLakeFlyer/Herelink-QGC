@@ -29,6 +29,7 @@ add_qgc_test(ADSBTest)
 
 add_subdirectory(AnalyzeView)
 add_qgc_test(ExifParserTest)
+add_qgc_test(GeoTagControllerTest)
 # add_qgc_test(LogDownloadTest)
 # add_qgc_test(MavlinkLogTest)
 add_qgc_test(PX4LogParserTest)
@@ -39,6 +40,9 @@ add_qgc_test(AudioOutputTest)
 
 # add_subdirectory(AutoPilotPlugins)
 # add_qgc_test(RadioConfigTest)
+
+add_subdirectory(Camera)
+add_qgc_test(QGCCameraManagerTest)
 
 add_subdirectory(Comms)
 add_qgc_test(QGCSerialPortInfoTest)
@@ -53,6 +57,9 @@ add_qgc_test(FollowMeTest)
 
 add_subdirectory(Geo)
 add_qgc_test(GeoTest)
+
+add_subdirectory(GPS)
+add_qgc_test(GpsTest)
 
 add_subdirectory(MAVLink)
 add_qgc_test(StatusTextHandlerTest)
@@ -91,12 +98,14 @@ add_subdirectory(QmlControls)
 
 add_subdirectory(Terrain)
 add_qgc_test(TerrainQueryTest)
+add_qgc_test(TerrainTileTest)
 
 add_subdirectory(UI)
 
 add_subdirectory(Utilities)
 # Compression
 add_qgc_test(DecompressionTest)
+add_qgc_test(UtilitiesTest)
 
 add_subdirectory(Vehicle)
 # Components
@@ -104,6 +113,7 @@ add_qgc_test(ComponentInformationCacheTest)
 add_qgc_test(ComponentInformationTranslationTest)
 add_qgc_test(FTPManagerTest)
 # add_qgc_test(InitialConnectTest)
+add_qgc_test(MAVLinkLogManagerTest)
 # add_qgc_test(RequestMessageTest)
 # add_qgc_test(SendMavCommandWithHandlerTest)
 # add_qgc_test(SendMavCommandWithSignalingTest)
@@ -127,11 +137,13 @@ target_link_libraries(qgctest
         ADSBTest
         AnalyzeViewTest
         AudioTest
+        CameraTest
         CommsTest
         CompressionTest
         FactSystemTest
         FollowMeTest
         GeoTest
+        GpsTest
         MAVLinkTest
         MissionManagerTest
         QmlControlsTest
@@ -139,7 +151,6 @@ target_link_libraries(qgctest
         UITest
         VehicleTest
         VehicleComponentsTest
-        QGC
         Utilities
         UtilitiesTest
     PUBLIC

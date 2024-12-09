@@ -42,23 +42,22 @@ qt_add_library(GPSDrivers STATIC
     ${px4-gpsdrivers_SOURCE_DIR}/src/unicore.h
 )
 
-target_link_libraries(GPSDrivers
-    PUBLIC
-        Qt6::Core
-        Utilities
-)
-
-target_include_directories(GPSDrivers PUBLIC ${px4-gpsdrivers_SOURCE_DIR})
+target_link_libraries(GPSDrivers PUBLIC Qt6::Core)
 
 target_compile_definitions(GPSDrivers PUBLIC GPS_DEFINITIONS_HEADER=<${CMAKE_CURRENT_SOURCE_DIR}/definitions.h>)
+
+target_include_directories(GPSDrivers PUBLIC ${px4-gpsdrivers_SOURCE_DIR}/src)
 
 target_sources(GPS
     PRIVATE
         GPSManager.cc
         GPSManager.h
-        GPSPositionMessage.h
         GPSProvider.cc
         GPSProvider.h
+        GPSRtk.cc
+        GPSRtk.h
+        GPSRTKFactGroup.cc
+        GPSRTKFactGroup.h
         RTCMMavlink.cc
         RTCMMavlink.h
         satellite_info.h
@@ -69,14 +68,13 @@ target_sources(GPS
 target_link_libraries(GPS
     PRIVATE
         Comms
-        GPSDrivers
+        MAVLink
         Settings
         Utilities
         Vehicle
     PUBLIC
         Qt6::Core
-        MAVLink
-        QGC
+        GPSDrivers
 )
 
 target_include_directories(GPS PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

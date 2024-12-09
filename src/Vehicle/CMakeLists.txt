@@ -4,10 +4,6 @@ add_subdirectory(FactGroups)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Positioning Qml)
 
-if(QGC_UTM_ADAPTER)
-    add_definitions(-DQGC_UTM_ADAPTER)
-endif()
-
 qt_add_library(Vehicle STATIC
     Autotune.cpp
     Autotune.h
@@ -48,7 +44,7 @@ target_link_libraries(Vehicle
         FirmwarePlugin
         Joystick
         MockLink
-        Utilities
+        PositionManager
         UTMSP
         VideoManager
     PUBLIC
@@ -61,7 +57,7 @@ target_link_libraries(Vehicle
         LibEventsWrapper
         MAVLink
         MissionManager
-        QGC
+        Utilities
         VehicleFactGroups
 )
 

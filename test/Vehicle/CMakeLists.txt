@@ -6,6 +6,10 @@ qt_add_library(VehicleTest
     STATIC
         FTPManagerTest.cc
         FTPManagerTest.h
+        InitialConnectTest.cc
+        InitialConnectTest.h
+        MAVLinkLogManagerTest.cc
+        MAVLinkLogManagerTest.h
         RequestMessageTest.cc
         RequestMessageTest.h
         SendMavCommandWithHandlerTest.cc
@@ -19,7 +23,6 @@ qt_add_library(VehicleTest
 target_link_libraries(VehicleTest
     PRIVATE
         Qt6::Test
-        QGC
     PUBLIC
         Comms
         qgcunittest

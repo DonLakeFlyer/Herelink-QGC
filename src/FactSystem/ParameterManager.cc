@@ -19,10 +19,15 @@
 #include "QGC.h"
 #include <QGCLoggingCategory.h>
 
+#include "FactPanelController.h"
+#include "FactValueSliderListModel.h"
+#include "FactGroup.h"
+
 #include <QtCore/QEasingCurve>
 #include <QtCore/QFile>
 #include <QtCore/QVariantAnimation>
 #include <QtCore/QStandardPaths>
+#include <QtQml/qqml.h>
 
 QGC_LOGGING_CATEGORY(ParameterManagerVerbose1Log,           "ParameterManagerVerbose1Log")
 QGC_LOGGING_CATEGORY(ParameterManagerVerbose2Log,           "ParameterManagerVerbose2Log")
@@ -68,7 +73,6 @@ const QHash<int, QString> _mavlinkCompIdHash {
 ParameterManager::ParameterManager(Vehicle* vehicle)
     : QObject                           (vehicle)
     , _vehicle                          (vehicle)
-    , _mavlink                          (nullptr)
     , _loadProgress                     (0.0)
     , _parametersReady                  (false)
     , _missingParameters                (false)
@@ -91,8 +95,6 @@ ParameterManager::ParameterManager(Vehicle* vehicle)
         return;
     }
 
-    _mavlink = qgcApp()->toolbox()->mavlinkProtocol();
-
     _initialRequestTimeoutTimer.setSingleShot(true);
     _initialRequestTimeoutTimer.setInterval(5000);
     connect(&_initialRequestTimeoutTimer, &QTimer::timeout, this, &ParameterManager::_initialRequestTimeout);
@@ -103,6 +105,17 @@ ParameterManager::ParameterManager(Vehicle* vehicle)
 
     // Ensure the cache directory exists
     QFileInfo(QSettings().fileName()).dir().mkdir("ParamCache");
+}
+
+void ParameterManager::registerQmlTypes()
+{
+    qmlRegisterType<Fact>               ("QGroundControl.FactSystem", 1, 0, "Fact");
+    qmlRegisterType<FactMetaData>       ("QGroundControl.FactSystem", 1, 0, "FactMetaData");
+    qmlRegisterType<FactPanelController>("QGroundControl.FactSystem", 1, 0, "FactPanelController");
+
+    qmlRegisterUncreatableType<FactGroup>               ("QGroundControl.FactSystem",   1, 0, "FactGroup",                  "Reference only");
+    qmlRegisterUncreatableType<FactValueSliderListModel>("QGroundControl.FactControls", 1, 0, "FactValueSliderListModel",   "Reference only");
+    qmlRegisterUncreatableType<ParameterManager>        ("QGroundControl.Vehicle",      1, 0, "ParameterManager",           "Reference only");
 }
 
 void ParameterManager::_updateProgressBar(void)
@@ -544,11 +557,10 @@ void ParameterManager::refreshAllParameters(uint8_t componentId)
                 _waitingReadParamIndexMap[cid][waitingIndex] = 0;
             }
         }
-        MAVLinkProtocol*        mavlink = qgcApp()->toolbox()->mavlinkProtocol();
         mavlink_message_t       msg;
 
-        mavlink_msg_param_request_list_pack_chan(mavlink->getSystemId(),
-                                                 mavlink->getComponentId(),
+        mavlink_msg_param_request_list_pack_chan(MAVLinkProtocol::instance()->getSystemId(),
+                                                 MAVLinkProtocol::getComponentId(),
                                                  sharedLink->mavlinkChannel(),
                                                  &msg,
                                                  _vehicle->id(),
@@ -789,8 +801,8 @@ void ParameterManager::_readParameterRaw(int componentId, const QString& paramNa
 
 
         strncpy(fixedParamName, paramName.toStdString().c_str(), sizeof(fixedParamName));
-        mavlink_msg_param_request_read_pack_chan(_mavlink->getSystemId(),   // QGC system id
-                                                 _mavlink->getComponentId(),     // QGC component id
+        mavlink_msg_param_request_read_pack_chan(MAVLinkProtocol::instance()->getSystemId(),   // QGC system id
+                                                 MAVLinkProtocol::getComponentId(),     // QGC component id
                                                  sharedLink->mavlinkChannel(),
                                                  &msg,                           // Pack into this mavlink_message_t
                                                  _vehicle->id(),                 // Target system id
@@ -853,8 +865,8 @@ void ParameterManager::_sendParamSetToVehicle(int componentId, const QString& pa
         strncpy(p.param_id, paramName.toStdString().c_str(), sizeof(p.param_id));
 
         mavlink_message_t msg;
-        mavlink_msg_param_set_encode_chan(_mavlink->getSystemId(),
-                                          _mavlink->getComponentId(),
+        mavlink_msg_param_set_encode_chan(MAVLinkProtocol::instance()->getSystemId(),
+                                          MAVLinkProtocol::getComponentId(),
                                           sharedLink->mavlinkChannel(),
                                           &msg,
                                           &p);
@@ -951,8 +963,8 @@ void ParameterManager::_tryCacheHashLoad(int vehicleId, int componentId, QVarian
             p.target_system = (uint8_t)_vehicle->id();
             p.target_component = (uint8_t)componentId;
             mavlink_message_t msg;
-            mavlink_msg_param_set_encode_chan(_mavlink->getSystemId(),
-                                              _mavlink->getComponentId(),
+            mavlink_msg_param_set_encode_chan(MAVLinkProtocol::instance()->getSystemId(),
+                                              MAVLinkProtocol::getComponentId(),
                                               sharedLink->mavlinkChannel(),
                                               &msg,
                                               &p);

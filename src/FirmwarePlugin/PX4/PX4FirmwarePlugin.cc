@@ -260,7 +260,7 @@ void PX4FirmwarePlugin::_getParameterMetaDataVersionInfo(const QString& metaData
     return PX4ParameterMetaData::getParameterMetaDataVersionInfo(metaDataFile, majorVersion, minorVersion);
 }
 
-QList<MAV_CMD> PX4FirmwarePlugin::supportedMissionCommands(QGCMAVLink::VehicleClass_t vehicleClass)
+QList<MAV_CMD> PX4FirmwarePlugin::supportedMissionCommands(QGCMAVLink::VehicleClass_t vehicleClass) const
 {
     QList<MAV_CMD> supportedCommands = {
         MAV_CMD_NAV_WAYPOINT,
@@ -304,7 +304,7 @@ QList<MAV_CMD> PX4FirmwarePlugin::supportedMissionCommands(QGCMAVLink::VehicleCl
         supportedCommands += flightCommands;
     }
 
-    if (qgcApp()->toolbox()->settingsManager()->planViewSettings()->useConditionGate()->rawValue().toBool()) {
+    if (SettingsManager::instance()->planViewSettings()->useConditionGate()->rawValue().toBool()) {
         supportedCommands.append(MAV_CMD_CONDITION_GATE);
     }
 

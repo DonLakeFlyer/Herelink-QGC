@@ -4,6 +4,8 @@ qt_add_library(AnalyzeViewTest
     STATIC
         ExifParserTest.cc
         ExifParserTest.h
+        GeoTagControllerTest.cc
+        GeoTagControllerTest.h
         LogDownloadTest.cc
         LogDownloadTest.h
         MavlinkLogTest.cc
@@ -20,7 +22,6 @@ target_link_libraries(AnalyzeViewTest
         Qt6::Test
         AnalyzeView
         MAVLink
-        QGC
         Utilities
         Vehicle
     PUBLIC

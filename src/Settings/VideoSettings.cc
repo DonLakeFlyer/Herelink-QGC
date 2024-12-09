@@ -8,7 +8,6 @@
  ****************************************************************************/
 
 #include "VideoSettings.h"
-#include "QGCApplication.h"
 #include "VideoManager.h"
 
 #include <QtQml/QQmlEngine>
@@ -174,7 +173,7 @@ DECLARE_SETTINGSFACT_NO_FUNC(VideoSettings, tcpUrl)
 bool VideoSettings::streamConfigured(void)
 {
     //-- First, check if it's autoconfigured
-    if(qgcApp()->toolbox()->videoManager()->autoStreamConfigured()) {
+    if(VideoManager::instance()->autoStreamConfigured()) {
         qCDebug(VideoManagerLog) << "Stream auto configured";
         return true;
     }

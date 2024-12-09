@@ -26,7 +26,6 @@ Q_DECLARE_LOGGING_CATEGORY(ParameterManagerDebugCacheFailureLog)
 
 class ParameterEditorController;
 class Vehicle;
-class MAVLinkProtocol;
 
 class ParameterManager : public QObject
 {
@@ -37,6 +36,8 @@ class ParameterManager : public QObject
 public:
     /// @param uas Uas which this set of facts is associated with
     ParameterManager(Vehicle* vehicle);
+
+    static void registerQmlTypes();
 
     Q_PROPERTY(bool     parametersReady     READ parametersReady    NOTIFY parametersReadyChanged)      ///< true: Parameters are ready for use
     Q_PROPERTY(bool     missingParameters   READ missingParameters  NOTIFY missingParametersChanged)    ///< true: Parameters are missing from firmware response, false: all parameters received from firmware
@@ -134,7 +135,6 @@ private:
     static QVariant _stringToTypedVariant(const QString& string, FactMetaData::ValueType_t type, bool failOk = false);
 
     Vehicle*            _vehicle;
-    MAVLinkProtocol*    _mavlink;
 
     QMap<int /* comp id */, QMap<QString /* parameter name */, Fact*>> _mapCompId2FactMap;
 
