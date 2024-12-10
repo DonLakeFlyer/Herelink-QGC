@@ -108,6 +108,7 @@ Vehicle::Vehicle(LinkInterface*             link,
     , _hygrometerFactGroup          (this)
     , _generatorFactGroup           (this)
     , _efiFactGroup                 (this)
+    , _rpmFactGroup                 (this)
     , _terrainFactGroup             (this)
     , _terrainProtocolHandler       (new TerrainProtocolHandler(this, &_terrainFactGroup, this))
 {
@@ -330,6 +331,7 @@ void Vehicle::_commonInit()
     _addFactGroup(&_hygrometerFactGroup,        _hygrometerFactGroupName);
     _addFactGroup(&_generatorFactGroup,         _generatorFactGroupName);
     _addFactGroup(&_efiFactGroup,               _efiFactGroupName);
+    _addFactGroup(&_rpmFactGroup,               _rpmFactGroupName);
     _addFactGroup(&_terrainFactGroup,           _terrainFactGroupName);
 
     // Add firmware-specific fact groups, if provided
@@ -1431,6 +1433,16 @@ void Vehicle::_handleRCChannels(mavlink_message_t& message)
         &channels.chan18_raw,
     };
     int pwmValues[QGCMAVLink::maxRcChannels];
+
+    // Below is a hack that's needed by ELRS
+    // ELRS is not sending a full RC_CHANNELS packet, only channel update
+    // packets via RC_CHANNELS_RAW, to update the position of the values.
+    // Therefore, the number of channels is not set.
+    if (channels.chancount == 0) {
+        for(const auto& channelValue : _rgChannelvalues) {
+            if (*channelValue != UINT16_MAX) channels.chancount++;
+        }
+    }
 
     for (int i=0; i<QGCMAVLink::maxRcChannels; i++) {
         uint16_t channelValue = *_rgChannelvalues[i];
