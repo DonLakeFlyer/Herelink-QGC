@@ -9,6 +9,10 @@ set_property(DIRECTORY ${CMAKE_SOURCE_DIR}
     CUSTOMCLASS=HerelinkCorePlugin
 )
 
+add_compile_definitions(
+    QGC_HERELINK_AIRUNIT_VIDEO
+)
+
 # Our own, custom resources
 list(APPEND CUSTOM_RESOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/qgcimages.qrc
