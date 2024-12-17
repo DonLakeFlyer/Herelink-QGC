@@ -257,7 +257,6 @@ const QHostAddress UDPWorker::_multicastGroup = QHostAddress(QStringLiteral("224
 UDPWorker::UDPWorker(const UDPConfiguration *config, QObject *parent)
     : QObject(parent)
     , _udpConfig(config)
-    , _socket(new QUdpSocket(this))
 {
     // qCDebug(UDPLinkLog) << Q_FUNC_INFO << this;
 }
@@ -271,11 +270,14 @@ UDPWorker::~UDPWorker()
 
 bool UDPWorker::isConnected() const
 {
-    return (_socket->isValid() && _isConnected);
+    return (_socket && _socket->isValid() && _isConnected);
 }
 
 void UDPWorker::setupSocket()
 {
+    Q_ASSERT(!_socket);
+    _socket = new QUdpSocket(this);
+
     const QList<QHostAddress> localAddresses = QNetworkInterface::allAddresses();
     _localAddresses = QSet(localAddresses.constBegin(), localAddresses.constEnd());
 
@@ -316,30 +318,35 @@ void UDPWorker::connectLink()
         return;
     }
 
+    _errorEmitted = false;
+
     qCDebug(UDPLinkLog) << "Attempting to bind to port:" << _udpConfig->localPort();
     const bool bindSuccess = _socket->bind(QHostAddress::AnyIPv4, _udpConfig->localPort(), QAbstractSocket::ReuseAddressHint | QAbstractSocket::ShareAddress);
     if (!bindSuccess) {
-        emit errorOccurred(tr("Failed to bind UDP socket to port"));
-        qCWarning(UDPLinkLog) << "Failed to bind UDP socket to port" << _udpConfig->localPort() << "with no error signal.";
-        _onSocketDisconnected();
+        qCWarning(UDPLinkLog) << "Failed to bind UDP socket to port" << _udpConfig->localPort();
+
+        if (!_errorEmitted) {
+            emit errorOccurred(tr("Failed to bind UDP socket to port"));
+            _errorEmitted = true;
+        }
+
+        // Disconnecting here on autoconnect will cause continuous error popups
+        /*if (!_udpConfig->isAutoConnect()) {
+            _onSocketDisconnected();
+        }*/
+
         return;
     }
 
     qCDebug(UDPLinkLog) << "Attempting to join multicast group:" << _multicastGroup.toString();
     const bool joinSuccess = _socket->joinMulticastGroup(_multicastGroup);
     if (!joinSuccess) {
-        emit errorOccurred(tr("Failed to join multicast group"));
         qCWarning(UDPLinkLog) << "Failed to join multicast group" << _multicastGroup.toString();
-        _onSocketDisconnected();
-        return;
     }
 
 #ifdef QGC_ZEROCONF_ENABLED
     _registerZeroconf(_udpConfig->localPort());
 #endif
-
-    qCDebug(UDPLinkLog) << "Successfully bound to port" << _udpConfig->localPort() << "and joined multicast group.";
-    return;
 }
 
 void UDPWorker::disconnectLink()
@@ -390,6 +397,7 @@ void UDPWorker::_onSocketConnected()
 {
     qCDebug(UDPLinkLog) << "UDP connected to" << _udpConfig->localPort();
     _isConnected = true;
+    _errorEmitted = false;
     emit connected();
 }
 
@@ -397,6 +405,7 @@ void UDPWorker::_onSocketDisconnected()
 {
     qCDebug(UDPLinkLog) << "UDP disconnected from" << _udpConfig->localPort();
     _isConnected = false;
+    _errorEmitted = false;
     emit disconnected();
 }
 
@@ -457,8 +466,13 @@ void UDPWorker::_onSocketBytesWritten(qint64 bytes)
 
 void UDPWorker::_onSocketErrorOccurred(QUdpSocket::SocketError error)
 {
+    const QString errorString = _socket->errorString();
     qCWarning(UDPLinkLog) << "UDP Link error:" << error << _socket->errorString();
-    emit errorOccurred(_socket->errorString());
+
+    if (!_errorEmitted) {
+        emit errorOccurred(errorString);
+        _errorEmitted = true;
+    }
 }
 
 #ifdef QGC_ZEROCONF_ENABLED

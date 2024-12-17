@@ -22,6 +22,7 @@ QGC_LOGGING_CATEGORY(SerialLinkLog, "qgc.comms.seriallink")
 
 namespace {
     constexpr int CONNECT_TIMEOUT_MS = 1000;
+    constexpr int DISCONNECT_TIMEOUT_MS = 3000;
     constexpr int READ_TIMEOUT_MS = 100;
 }
 
@@ -138,9 +139,7 @@ QString SerialConfiguration::cleanPortDisplayName(const QString &name)
 
 SerialWorker::SerialWorker(const SerialConfiguration *config, QObject *parent)
     : QObject(parent)
-    , _config(config)
-    , _port(new QSerialPort(this))
-    , _timer(new QTimer(this))
+    , _serialConfig(config)
 {
     // qCDebug(SerialLinkLog) << Q_FUNC_INFO << this;
 
@@ -156,15 +155,24 @@ SerialWorker::~SerialWorker()
 
 bool SerialWorker::isConnected() const
 {
-    return _port->isOpen();
+    return (_port && _port->isOpen());
 }
 
 void SerialWorker::setupPort()
 {
+    Q_ASSERT(!_port);
+    _port = new QSerialPort(this);
+
+    Q_ASSERT(!_timer);
+    _timer = new QTimer(this);
+
     (void) connect(_port, &QSerialPort::aboutToClose, this, &SerialWorker::_onPortDisconnected);
     (void) connect(_port, &QSerialPort::readyRead, this, &SerialWorker::_onPortReadyRead);
-    // (void) connect(_port, &QSerialPort::bytesWritten, this, &SerialWorker::_onPortBytesWritten);
     (void) connect(_port, &QSerialPort::errorOccurred, this, &SerialWorker::_onPortErrorOccurred);
+
+    /* if (SerialLinkLog().isDebugEnabled()) {
+        (void) connect(_port, &QSerialPort::bytesWritten, this, &SerialWorker::_onPortBytesWritten);
+    } */
 
     (void) connect(_timer, &QTimer::timeout, this, &SerialWorker::_checkPortAvailability);
     _timer->start(CONNECT_TIMEOUT_MS);
@@ -177,7 +185,7 @@ void SerialWorker::connectToPort()
         return;
     }
 
-    _port->setPortName(_config->portName());
+    _port->setPortName(_serialConfig->portName());
 
     const QGCSerialPortInfo portInfo(*_port);
     if (portInfo.isBootloader()) {
@@ -198,7 +206,11 @@ void SerialWorker::connectToPort()
             _errorEmitted = true;
         }
 
-        _onPortDisconnected();
+        // Disconnecting here on autoconnect will cause continuous error popups
+        if (!_serialConfig->isAutoConnect()) {
+            _onPortDisconnected();
+        }
+
         return;
     }
 
@@ -255,11 +267,11 @@ void SerialWorker::_onPortConnected()
     qCDebug(SerialLinkLog) << "Port connected:" << _port->portName();
 
     _port->setDataTerminalReady(true);
-    _port->setBaudRate(_config->baud());
-    _port->setDataBits(static_cast<QSerialPort::DataBits>(_config->dataBits()));
-    _port->setFlowControl(static_cast<QSerialPort::FlowControl>(_config->flowControl()));
-    _port->setStopBits(static_cast<QSerialPort::StopBits>(_config->stopBits()));
-    _port->setParity(static_cast<QSerialPort::Parity>(_config->parity()));
+    _port->setBaudRate(_serialConfig->baud());
+    _port->setDataBits(static_cast<QSerialPort::DataBits>(_serialConfig->dataBits()));
+    _port->setFlowControl(static_cast<QSerialPort::FlowControl>(_serialConfig->flowControl()));
+    _port->setStopBits(static_cast<QSerialPort::StopBits>(_serialConfig->stopBits()));
+    _port->setParity(static_cast<QSerialPort::Parity>(_serialConfig->parity()));
 
     _errorEmitted = false;
     emit connected();
@@ -288,17 +300,26 @@ void SerialWorker::_onPortBytesWritten(qint64 bytes) const
 
 void SerialWorker::_onPortErrorOccurred(QSerialPort::SerialPortError portError)
 {
-    if (portError == QSerialPort::NoError) {
+    const QString errorString = _port->errorString();
+    qCWarning(SerialLinkLog) << "Port error:" << portError << errorString;
+
+    switch (portError) {
+    case QSerialPort::NoError:
         qCDebug(SerialLinkLog) << "About to open port" << _port->portName();
         return;
-    } /* else if (error == QSerialPort::ResourceError) {
+    case QSerialPort::PermissionError:
+        if (_serialConfig->isAutoConnect()) {
+            return;
+        }
+        break;
+    /*case QSerialPort::ResourceError:
         serialPort->close();
-    }*/
-
-    const QString errorString = _port->errorString();
+        break;*/
+    default:
+        break;
+    }
 
     if (!_errorEmitted) {
-        qCWarning(SerialLinkLog) << "Port error:" << portError << errorString;
         emit errorOccurred(errorString);
         _errorEmitted = true;
     }
@@ -313,7 +334,7 @@ void SerialWorker::_checkPortAvailability()
     bool portExists = false;
     const auto availablePorts = QSerialPortInfo::availablePorts();
     for (const QSerialPortInfo &info : availablePorts) {
-        if (info.portName() == _config->portDisplayName()) {
+        if (info.portName() == _serialConfig->portDisplayName()) {
             portExists = true;
             break;
         }
@@ -355,8 +376,9 @@ SerialLink::~SerialLink()
     SerialLink::disconnect();
 
     _workerThread->quit();
-    if (!_workerThread->wait()) {
+    if (!_workerThread->wait(DISCONNECT_TIMEOUT_MS)) {
         qCWarning(SerialLinkLog) << "Failed to wait for Serial Thread to close";
+        // _workerThread->terminate();
     }
 
     // qCDebug(SerialLinkLog) << Q_FUNC_INFO << this;
