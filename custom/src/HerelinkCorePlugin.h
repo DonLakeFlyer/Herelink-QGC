@@ -20,8 +20,8 @@ public:
     // Overrides from QGCCorePlugin
     void        init                            (void) override;
     QGCOptions* options                         (void) override { return qobject_cast<QGCOptions*>(_herelinkOptions); }
-    bool        overrideSettingsGroupVisibility (const QString &name) override;
-    bool        adjustSettingMetaData           (const QString &settingsGroup, FactMetaData &metaData) override;
+    bool        overrideSettingsGroupVisibility (const QString &name) const override;
+    bool        adjustSettingMetaData           (const QString &settingsGroup, FactMetaData &metaData) const override;
 
 private slots:
     void _activeVehicleChanged(Vehicle* activeVehicle);
