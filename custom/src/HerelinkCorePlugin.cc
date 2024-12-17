@@ -38,13 +38,13 @@ void HerelinkCorePlugin::init()
     }
 }
 
-bool HerelinkCorePlugin::overrideSettingsGroupVisibility(const QString &name) const
+bool HerelinkCorePlugin::overrideSettingsGroupVisibility(const QString &name)
 {
     // Hide all AutoConnect settings
     return name != AutoConnectSettings::name;
 }
 
-bool HerelinkCorePlugin::adjustSettingMetaData(const QString& settingsGroup, FactMetaData& metaData) const
+bool HerelinkCorePlugin::adjustSettingMetaData(const QString& settingsGroup, FactMetaData& metaData)
 {
     if (settingsGroup == AutoConnectSettings::settingsGroup) {
         // We have to adjust the Herelink UDP autoconnect settings for the AirLink
