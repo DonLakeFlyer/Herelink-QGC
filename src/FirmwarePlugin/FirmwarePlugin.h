@@ -28,6 +28,45 @@ class Autotune;
 class LinkInterface;
 class FactGroup;
 
+
+struct FirmwareFlightMode
+{
+    QString     mode_name       = "Unknown";
+    uint8_t     standard_mode   = UINT8_MAX;
+    uint32_t    custom_mode     = UINT32_MAX;
+    bool        canBeSet        = false;
+    bool        advanced        = false;
+    bool        fixedWing       = false;
+    bool        multiRotor      = true;
+
+    FirmwareFlightMode(QString mName, uint32_t cMode, bool cbs = false, bool adv = false)
+        : mode_name     (mName)
+        , standard_mode (0)
+        , custom_mode   (cMode)
+        , canBeSet      (cbs)
+        , advanced      (adv)
+        , fixedWing     (false)
+        , multiRotor    (true)
+    {
+    }
+
+    FirmwareFlightMode(QString mName, uint8_t sMode, uint32_t cMode,
+                       bool cbs = false, bool adv = false,
+                       bool fWing = false, bool mRotor = true
+    )
+        : mode_name     (mName)
+        , standard_mode (sMode)
+        , custom_mode   (cMode)
+        , canBeSet      (cbs)
+        , advanced      (adv)
+        , fixedWing     (fWing)
+        , multiRotor    (mRotor)
+    {
+    }
+};
+
+typedef QList<FirmwareFlightMode>         FlightModeList;
+typedef QMap<uint32_t,QString>            FlightModeCustomModeMap;
 /// This is the base class for Firmware specific plugins
 ///
 /// The FirmwarePlugin class represents the methods and objects which are specific to a certain Firmware flight stack.
@@ -116,6 +155,15 @@ public:
 
     /// Returns the flight mode for Land
     virtual QString landFlightMode(void) const { return QString(); }
+
+    /// Returns the flight mode for TakeOff
+    virtual QString takeOffFlightMode(void) const { return QString(); }
+
+    /// Returns the flight mode for Motor Detection
+    virtual QString motorDetectionFlightMode(void) const { return QString(); }
+
+    /// Returns the flight mode for Stabilized
+    virtual QString stabilizedFlightMode(void) const { return QString(); }
 
     /// Returns the flight mode to use when the operator wants to take back control from autonomouse flight.
     virtual QString takeControlFlightMode(void) const { return QString(); }
@@ -357,6 +405,9 @@ public:
     /// Creates Autotune object.
     virtual Autotune* createAutotune(Vehicle *vehicle);
 
+    /// Update Available flight modes recieved from vehicle
+    virtual void updateAvailableFlightModes(FlightModeList modeList);
+
 signals:
     void toolIndicatorsChanged(void);
     void modeIndicatorsChanged(void);
@@ -379,7 +430,58 @@ protected:
     // Returns regex QString to extract version information from text
     virtual QString _versionRegex() { return QString(); }
 
+    // Set Custom Mode mapping to Flight Mode String
+    void             _setModeEnumToModeStringMapping(FlightModeCustomModeMap enumToString);
+
+    // Convert Base enum to Derived class Enums
+    virtual uint32_t _convertToCustomFlightModeEnum(uint32_t val) const { return val;}
+
+    // Update internal mappings for a list of flight modes
+    void             _updateModeMappings(FlightModeList &modeList);
+    void             _addNewFlightMode  (FirmwareFlightMode &mode);
+
+    FlightModeList              _availableFlightModeList;
+    FlightModeCustomModeMap     _modeEnumToString;
+
 protected:
     QVariantList _toolIndicatorList;
     QVariantList _modeIndicatorList;
+};
+
+class FirmwarePluginInstanceData : public QObject
+{
+    Q_OBJECT
+
+public:
+
+    using QObject::QObject;
+
+    // support for detecting whether the firmware a vehicle is running
+    // supports a given MAV_CMD:
+    enum class CommandSupportedResult : uint8_t {
+        SUPPORTED = 23,
+        UNSUPPORTED = 24,
+        UNKNOWN = 25,
+    };
+    // anyVersionSupportsCommand returns true if any version of the
+    // firmware has supported cmd.  Used so that extra round-trips to
+    // the autopilot to probe for command support are not required.
+    virtual CommandSupportedResult anyVersionSupportsCommand(MAV_CMD cmd) const {
+        return CommandSupportedResult::UNKNOWN;
+    }
+
+    // support for detecting whether the firmware a vehicle is running
+    // supports a given MAV_CMD:
+    void setCommandSupported(MAV_CMD cmd, CommandSupportedResult status) {
+        MAV_CMD_supported[cmd] = status;
+    }
+    CommandSupportedResult getCommandSupported(MAV_CMD cmd) const {
+        if (anyVersionSupportsCommand(cmd) == CommandSupportedResult::UNSUPPORTED) {
+            return CommandSupportedResult::UNSUPPORTED;
+        }
+        return MAV_CMD_supported.value(cmd, CommandSupportedResult::UNKNOWN);
+    }
+
+private:
+    QMap<MAV_CMD, CommandSupportedResult> MAV_CMD_supported;
 };

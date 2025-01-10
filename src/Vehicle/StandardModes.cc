@@ -55,9 +55,6 @@ void StandardModes::gotMessage(MAV_RESULT result, const mavlink_message_t &messa
             case MAV_STANDARD_MODE_ALTITUDE_HOLD:
                 name = "Altitude";
                 break;
-            case MAV_STANDARD_MODE_RETURN_HOME:
-                name = "Return";
-                break;
             case MAV_STANDARD_MODE_SAFE_RECOVERY:
                 name = "Safe Recovery";
                 break;
@@ -80,6 +77,16 @@ void StandardModes::gotMessage(MAV_RESULT result, const mavlink_message_t &messa
 
         _nextModes[availableModes.custom_mode] = Mode{name, availableModes.standard_mode, advanced, cannotBeSet};
 
+        _modeList += FirmwareFlightMode{
+            name,
+            availableModes.standard_mode,
+            availableModes.custom_mode,
+            !cannotBeSet,
+            advanced,
+            false,
+            false
+        };
+
         if (availableModes.mode_index >= availableModes.number_modes) { // We are done
             qCDebug(StandardModesLog) << "Completed, num modes:" << _nextModes.size();
             _modes = _nextModes;
@@ -87,6 +94,7 @@ void StandardModes::gotMessage(MAV_RESULT result, const mavlink_message_t &messa
             _hasModes = true;
             emit modesUpdated();
             emit requestCompleted();
+            _vehicle->firmwarePlugin()->updateAvailableFlightModes(_modeList);
 
         } else {
             requestMode(availableModes.mode_index + 1);

@@ -72,7 +72,7 @@ QString FirmwarePlugin::flightMode(uint8_t base_mode, uint32_t custom_mode) cons
     if (base_mode == 0) {
         flightMode = "PreFlight";
     } else if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
-        flightMode = QString("Custom:0x%1").arg(custom_mode, 0, 16);
+        flightMode = _modeEnumToString.value(custom_mode, QString("Custom:0x%1").arg(custom_mode, 0, 16));
     } else {
         for (size_t i=0; i<sizeof(rgBit2Name)/sizeof(rgBit2Name[0]); i++) {
             if (base_mode & rgBit2Name[i].baseModeBit) {
@@ -566,4 +566,45 @@ void FirmwarePlugin::sendGCSMotionReport(Vehicle *vehicle, FollowMe::GCSMotionRe
 Autotune* FirmwarePlugin::createAutotune(Vehicle *vehicle)
 {
     return new Autotune(vehicle);
+}
+
+void FirmwarePlugin::updateAvailableFlightModes(FlightModeList modeList)
+{
+    _updateModeMappings(modeList);
+}
+
+void FirmwarePlugin::_setModeEnumToModeStringMapping(FlightModeCustomModeMap enumToString)
+{
+    _modeEnumToString = enumToString;
+}
+
+void FirmwarePlugin::_updateModeMappings(FlightModeList &modeList){
+
+    _availableFlightModeList.clear();
+
+    for(auto &mode:modeList){
+        // Get Presaved Mode String, if mode is not present then take Custom Mode Name
+
+        QString nModeName = mode.mode_name;
+        if(_modeEnumToString.contains(mode.custom_mode)){
+            nModeName = _modeEnumToString[mode.custom_mode];
+        }
+        else{
+            // Mode Is New for QGC
+            _modeEnumToString[mode.custom_mode] = nModeName;
+        }
+        mode.mode_name = nModeName;
+        _addNewFlightMode(mode);
+    }
+}
+
+void FirmwarePlugin::_addNewFlightMode(FirmwareFlightMode &mode)
+{
+    for(auto &m:_availableFlightModeList){
+        if(m.custom_mode == mode.custom_mode){
+            // Already Exist
+            return;
+        }
+    }
+    _availableFlightModeList += mode;
 }

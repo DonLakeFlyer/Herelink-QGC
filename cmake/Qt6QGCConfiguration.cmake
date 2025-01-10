@@ -6,7 +6,7 @@ if(NOT QT_VERSION)
     # if QT version not specified then use any available version
     file(GLOB FOUND_QT_VERSIONS
         LIST_DIRECTORIES true
-        $ENV{HOME}/Qt/6.6.*
+        $ENV{HOME}/Qt/6.8.*
     )
     if(NOT FOUND_QT_VERSIONS)
         return()
@@ -25,7 +25,7 @@ if(NOT QT_MKSPEC)
     elseif(LINUX)
         set(QT_MKSPEC gcc_64)
     elseif(WIN32)
-        set(QT_MKSPEC msvc2019_64)
+        set(QT_MKSPEC msvc2022_64)
     elseif(ANDROID)
         if(${ANDROID_ABI} STREQUAL armeabi-v7a)
             set(QT_MKSPEC android_armv7)

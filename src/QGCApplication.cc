@@ -278,6 +278,7 @@ void QGCApplication::init()
     VideoManager::registerQmlTypes();
     QGCCorePlugin::registerQmlTypes();
     GPSRtk::registerQmlTypes();
+    JoystickManager::registerQmlTypes();
 #ifdef QGC_VIEWER3D
     Viewer3DManager::registerQmlTypes();
 #endif
@@ -320,8 +321,6 @@ void QGCApplication::init()
 
     if (!_runningUnitTests) {
         _initForNormalAppBoot();
-    } else {
-        AudioOutput::instance()->setMuted(true);
     }
 }
 
@@ -332,6 +331,7 @@ void QGCApplication::_initForNormalAppBoot()
     QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
 #endif
 
+    QGCCorePlugin::instance(); // CorePlugin must be initialized before VideoManager for Video Cleanup
     VideoManager::instance(); // GStreamer must be initialized before QmlEngine
 
     QQuickStyle::setStyle("Basic");
@@ -346,11 +346,10 @@ void QGCApplication::_initForNormalAppBoot()
     LinkManager::instance()->init();
     MultiVehicleManager::instance()->init();
     MAVLinkProtocol::instance()->init();
+    VideoManager::instance()->init();
 
     // Image provider for Optical Flow
     _qmlAppEngine->addImageProvider(qgcImageProviderId, new QGCImageProvider());
-
-    VideoManager::instance()->init();
 
     // Safe to show popup error messages now that main window is created
     _showErrorsInToolbar = true;
@@ -747,6 +746,9 @@ QGCImageProvider* QGCApplication::qgcImageProvider()
 void QGCApplication::shutdown()
 {
     qCDebug(QGCApplicationLog) << "Exit";
+
+    VideoManager::instance()->cleanup();
+
     // This is bad, but currently qobject inheritances are incorrect and cause crashes on exit without
     delete _qmlAppEngine;
 }

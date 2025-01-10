@@ -120,6 +120,8 @@ Item {
     readonly property int actionSetFlightMode:              29
     readonly property int actionChangeHeading:              30
 
+    readonly property int customActionStart:                10000 // Custom actions ids should start here so that they don't collide with the built in actions
+
     property var    _activeVehicle:             QGroundControl.multiVehicleManager.activeVehicle
     property var    _flyViewSettings:           QGroundControl.settingsManager.flyViewSettings
     property var    _unitsConversion:           QGroundControl.unitsConversion
@@ -143,7 +145,7 @@ Item {
     property bool showPause:                _guidedActionsEnabled && _vehicleArmed && _activeVehicle.pauseVehicleSupported && _vehicleFlying && !_vehiclePaused && !_fixedWingOnApproach
     property bool showChangeAlt:            _guidedActionsEnabled && _vehicleFlying && _activeVehicle.guidedModeSupported && _vehicleArmed && !_missionActive
     property bool showChangeSpeed:          _guidedActionsEnabled && _vehicleFlying && _activeVehicle.guidedModeSupported && _vehicleArmed && !_missionActive && _speedLimitsAvailable
-    property bool showOrbit:                _guidedActionsEnabled && _vehicleFlying && __orbitSupported && !_missionActive
+    property bool showOrbit:                _guidedActionsEnabled && _vehicleFlying && __orbitSupported && !_missionActive && _activeVehicle.homePosition.isValid && !isNaN(_activeVehicle.homePosition.altitude)
     property bool showROI:                  _guidedActionsEnabled && _vehicleFlying && __roiSupported
     property bool showLandAbort:            _guidedActionsEnabled && _vehicleFlying && _fixedWingOnApproach
     property bool showGotoLocation:         _guidedActionsEnabled && _vehicleFlying
@@ -193,6 +195,12 @@ Item {
     property bool __roiSupported:           _activeVehicle ? !_hideROI && _activeVehicle.roiModeSupported : false
     property bool __orbitSupported:         _activeVehicle ? !_hideOrbit && _activeVehicle.orbitModeSupported : false
     property bool __flightMode:             _flightMode
+
+    // Allow custom builds to add custom actions by overriding CustomGuidedActionsController.qml
+    CustomGuidedActionsController {
+        id: customController
+    }
+    property var _customController: customController
 
     function _isGuidedActionsControllerLogEnabled() {
         return QGroundControl.categoryLoggingOn("GuidedActionsControllerLog")
@@ -557,8 +565,10 @@ Item {
             confirmDialog.message = changeHeadingMessage
             break
         default:
-            console.warn("Unknown actionCode", actionCode)
-            return
+            if (!customController.customConfirmAction(actionCode, actionData, mapIndicator, confirmDialog)) {
+                console.warn("Unknown actionCode", actionCode)
+                return
+            }
         }
         confirmDialog.show(showImmediate)
     }
@@ -617,7 +627,7 @@ Item {
             break
         case actionOrbit:
             var valueInMeters = _unitsConversion.appSettingsVerticalDistanceUnitsToMeters(sliderOutputValue)
-            _activeVehicle.guidedModeOrbit(orbitMapCircle.center, orbitMapCircle.radius() * (orbitMapCircle.clockwiseRotation ? 1 : -1), _activeVehicle.altitudeRelative.rawValue + valueInMeters)
+            _activeVehicle.guidedModeOrbit(orbitMapCircle.center, orbitMapCircle.radius() * (orbitMapCircle.clockwiseRotation ? 1 : -1), _activeVehicle.homePosition.altitude + valueInMeters)
             break
         case actionLandAbort:
             _activeVehicle.abortLanding(50)     // hardcoded value for climbOutAltitude that is currently ignored
@@ -669,7 +679,10 @@ Item {
             _activeVehicle.guidedModeChangeHeading(actionData)
             break
         default:
-            console.warn(qsTr("Internal error: unknown actionCode"), actionCode)
+            if (!customController.customExecuteAction(actionCode, actionData, sliderOutputValue, optionChecked)) {
+                console.warn(qsTr("Internal error: unknown actionCode"), actionCode)
+                return
+            }
             break
         }
     }

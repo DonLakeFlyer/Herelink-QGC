@@ -11,7 +11,7 @@
 #include "QGCApplication.h"
 #include "QGCCorePlugin.h"
 #include "SimulatedPosition.h"
-#include "DeviceInfo.h"
+// #include "DeviceInfo.h"
 #include "QGCLoggingCategory.h"
 
 #include <QtCore/qapplicationstatic.h>
@@ -88,9 +88,9 @@ void QGCPositionManager::_checkPermission()
     QLocationPermission locationPermission;
     locationPermission.setAccuracy(QLocationPermission::Precise);
 
-    const Qt::PermissionStatus permissionStatus = qgcApp()->checkPermission(locationPermission);
+    const Qt::PermissionStatus permissionStatus = QCoreApplication::instance()->checkPermission(locationPermission);
     if (permissionStatus == Qt::PermissionStatus::Undetermined) {
-        qgcApp()->requestPermission(locationPermission, this, [this](const QPermission &permission) {
+        QCoreApplication::instance()->requestPermission(locationPermission, this, [this](const QPermission &permission) {
             _handlePermissionStatus(permission.status());
         });
     } else {
@@ -181,13 +181,13 @@ void QGCPositionManager::_setPositionSource(QGCPositionSource source)
         (void) disconnect(_currentSource);
 
         _geoPositionInfo = QGeoPositionInfo();
-        _gcsPosition = QGeoCoordinate();
-        _gcsHeading = qQNaN();
-        _gcsPositionHorizontalAccuracy = std::numeric_limits<qreal>::infinity();
-
-        emit gcsPositionChanged(_gcsPosition);
-        emit gcsHeadingChanged(_gcsHeading);
         emit positionInfoUpdated(_geoPositionInfo);
+
+        _setGCSPosition(QGeoCoordinate());
+
+        _setGCSHeading(qQNaN());
+
+        _gcsPositionHorizontalAccuracy = std::numeric_limits<qreal>::infinity();
         emit gcsPositionHorizontalAccuracyChanged(_gcsPositionHorizontalAccuracy);
     }
 

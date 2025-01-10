@@ -276,14 +276,13 @@ void Vehicle::_commonInit()
     connect(_missionManager, &MissionManager::newMissionItemsAvailable, _trajectoryPoints, &TrajectoryPoints::clear);
 
     _standardModes                  = new StandardModes                 (this, this);
-    _componentInformationManager    = new ComponentInformationManager   (this);
-    _initialConnectStateMachine     = new InitialConnectStateMachine    (this);
+    _componentInformationManager    = new ComponentInformationManager   (this, this);
+    _initialConnectStateMachine     = new InitialConnectStateMachine    (this, this);
     _ftpManager                     = new FTPManager                    (this);
 
     _vehicleLinkManager             = new VehicleLinkManager            (this);
 
     connect(_standardModes, &StandardModes::modesUpdated, this, &Vehicle::flightModesChanged);
-    connect(_standardModes, &StandardModes::modesUpdated, this, [this](){ Vehicle::flightModeChanged(flightMode()); });
 
     _parameterManager = new ParameterManager(this);
     connect(_parameterManager, &ParameterManager::parametersReadyChanged, this, &Vehicle::_parametersReady);
@@ -1264,7 +1263,7 @@ void Vehicle::setEventsMetadata(uint8_t compid, const QString& metadataJsonFileN
 
     // get the mode group for some well-known flight modes
     int modeGroups[2]{-1, -1};
-    const QString modes[2]{"Takeoff", "Mission"};
+    const QString modes[2]{_firmwarePlugin->takeOffFlightMode(), _firmwarePlugin->missionFlightMode()};
     for (size_t i = 0; i < sizeof(modeGroups)/sizeof(modeGroups[0]); ++i) {
         uint8_t     base_mode;
         uint32_t    custom_mode;
@@ -1338,9 +1337,10 @@ void Vehicle::_handleCurrentMode(mavlink_message_t& message)
     mavlink_msg_current_mode_decode(&message, &currentMode);
     if (currentMode.intended_custom_mode != 0) { // 0 == unknown/not supplied
         _has_custom_mode_user_intention = true;
+        QString previousFlightMode = flightMode();
         bool changed = _custom_mode_user_intention != currentMode.intended_custom_mode;
         _custom_mode_user_intention = currentMode.intended_custom_mode;
-        if (changed) {
+        if (changed && previousFlightMode != flightMode()) {
             emit flightModeChanged(flightMode());
         }
     }
@@ -1613,26 +1613,16 @@ bool Vehicle::flightModeSetAvailable()
 
 QStringList Vehicle::flightModes()
 {
-	if (_standardModes->supported()) {
-		return _standardModes->flightModes();
-	}
     return _firmwarePlugin->flightModes(this);
 }
 
 QString Vehicle::flightMode() const
 {
-    if (_standardModes->supported()) {
-        return _standardModes->flightMode(_custom_mode);
-    }
     return _firmwarePlugin->flightMode(_base_mode, _custom_mode);
 }
 
 bool Vehicle::setFlightModeCustom(const QString& flightMode, uint8_t* base_mode, uint32_t* custom_mode)
 {
-    if (_standardModes->supported()) {
-        *base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
-        return _standardModes->setFlightMode(flightMode, custom_mode);
-    }
     return _firmwarePlugin->setFlightMode(flightMode, base_mode, custom_mode);
 }
 
@@ -2347,18 +2337,23 @@ void Vehicle::landingGearRetract()
 
 void Vehicle::setCurrentMissionSequence(int seq)
 {
-    SharedLinkInterfacePtr sharedLink = vehicleLinkManager()->primaryLink().lock();
-    if (!sharedLink) {
-        qCDebug(VehicleLog) << "setCurrentMissionSequence: primary link gone!";
-        return;
-    }
-
-    mavlink_message_t       msg;
-
     if (!_firmwarePlugin->sendHomePositionToVehicle()) {
         seq--;
     }
-    mavlink_msg_mission_set_current_pack_chan(
+
+    // send the mavlink command (created in Jan 2019)
+    sendMavCommandWithLambdaFallback(
+        [this,seq]() {  // lambda function which uses the deprecated mission_set_current
+            SharedLinkInterfacePtr sharedLink = vehicleLinkManager()->primaryLink().lock();
+            if (!sharedLink) {
+                qCDebug(VehicleLog) << "setCurrentMissionSequence: primary link gone!";
+                return;
+            }
+
+            mavlink_message_t       msg;
+
+            // send mavlink message (deprecated since Aug 2022).
+            mavlink_msg_mission_set_current_pack_chan(
                 static_cast<uint8_t>(MAVLinkProtocol::instance()->getSystemId()),
                 static_cast<uint8_t>(MAVLinkProtocol::getComponentId()),
                 sharedLink->mavlinkChannel(),
@@ -2366,7 +2361,12 @@ void Vehicle::setCurrentMissionSequence(int seq)
                 static_cast<uint8_t>(id()),
                 _compID,
                 static_cast<uint16_t>(seq));
-    sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
+            sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
+        },
+        static_cast<uint8_t>(defaultComponentId()),
+        MAV_CMD_DO_SET_MISSION_CURRENT,
+        static_cast<uint16_t>(seq)
+    );
 }
 
 void Vehicle::sendMavCommand(int compId, MAV_CMD command, bool showError, float param1, float param2, float param3, float param4, float param5, float param6, float param7)
@@ -2430,6 +2430,87 @@ void Vehicle::sendMavCommandIntWithHandler(const MavCmdAckHandlerInfo_t* ackHand
                           command,
                           frame,
                           param1, param2, param3, param4, param5, param6, param7);
+}
+
+typedef struct {
+    Vehicle*            vehicle;
+    std::function<void()> unsupported_lambda;
+} _sendMavCommandWithLambdaFallbackHandlerData;
+
+static void _sendMavCommandWithLambdaFallbackHandler(void* resultHandlerData, int /*compId*/, const mavlink_command_ack_t& ack, Vehicle::MavCmdResultFailureCode_t /*failureCode*/)
+{
+    auto* data = (_sendMavCommandWithLambdaFallbackHandlerData*)resultHandlerData;
+    auto* vehicle = data->vehicle;
+    auto* instanceData = vehicle->firmwarePluginInstanceData();
+
+    switch (ack.result) {
+    case MAV_RESULT_ACCEPTED:
+        instanceData->setCommandSupported(MAV_CMD(ack.command), FirmwarePluginInstanceData::CommandSupportedResult::SUPPORTED);
+        break;
+    case MAV_RESULT_UNSUPPORTED:
+        instanceData->setCommandSupported(MAV_CMD(ack.command), FirmwarePluginInstanceData::CommandSupportedResult::UNSUPPORTED);
+        // call the "unsupported" lambda:
+        data->unsupported_lambda();
+        break;
+    };
+
+out:
+    delete data;
+}
+
+void Vehicle::sendMavCommandWithLambdaFallback(std::function<void()> lambda, int compId, MAV_CMD command, float param1, float param2, float param3, float param4, float param5, float param6, float param7)
+{
+
+    auto* instanceData = firmwarePluginInstanceData();
+
+    switch (instanceData->getCommandSupported(command)) {
+    case FirmwarePluginInstanceData::CommandSupportedResult::UNSUPPORTED:
+        // command is defintely unsupported, so call the lambda function:
+        lambda();
+        break;
+    case FirmwarePluginInstanceData::CommandSupportedResult::SUPPORTED:
+        // command is definitely supported; just send the command normally:
+        sendMavCommand(
+            compId,
+            command,
+            param1,
+            param2,
+            param3,
+            param4,
+            param5,
+            param6,
+            param7
+            );
+        break;
+    case FirmwarePluginInstanceData::CommandSupportedResult::UNKNOWN: {
+        // unknown whether the command is supported; send the command
+        // and let the callback handler call the lambda function if
+        // the command is not supported:
+        auto *data = new _sendMavCommandWithLambdaFallbackHandlerData();
+        data->vehicle = this;
+        data->unsupported_lambda = lambda;
+
+        const MavCmdAckHandlerInfo_t handlerInfo {
+            /* .resultHandler = */ &_sendMavCommandWithLambdaFallbackHandler,
+            /* .resultHandlerData =  */ data,
+            /* .progressHandler =  */ nullptr,
+            /* .progressHandlerData =  */ nullptr
+        };
+        sendMavCommandWithHandler(
+            &handlerInfo,
+            compId,
+            command,
+            param1,
+            param2,
+            param3,
+            param4,
+            param5,
+            param6,
+            param7
+            );
+        break;
+    }
+    }
 }
 
 bool Vehicle::isMavCommandPending(int targetCompId, MAV_CMD command)
@@ -3165,7 +3246,7 @@ void Vehicle::_handleMavlinkLoggingDataAcked(mavlink_message_t& message)
     }
 }
 
-void Vehicle::setFirmwarePluginInstanceData(QObject* firmwarePluginInstanceData)
+void Vehicle::setFirmwarePluginInstanceData(FirmwarePluginInstanceData* firmwarePluginInstanceData)
 {
     firmwarePluginInstanceData->setParent(this);
     _firmwarePluginInstanceData = firmwarePluginInstanceData;
@@ -3209,6 +3290,16 @@ QString Vehicle::takeControlFlightMode() const
 QString Vehicle::followFlightMode() const
 {
     return _firmwarePlugin->followFlightMode();
+}
+
+QString Vehicle::motorDetectionFlightMode() const
+{
+    return _firmwarePlugin->motorDetectionFlightMode();
+}
+
+QString Vehicle::stabilizedFlightMode() const
+{
+    return _firmwarePlugin->stabilizedFlightMode();
 }
 
 QString Vehicle::vehicleImageOpaque() const

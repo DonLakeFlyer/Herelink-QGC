@@ -29,6 +29,8 @@ VTOLLandingComplexItem::VTOLLandingComplexItem(PlanMasterController* masterContr
     , _metaDataMap              (FactMetaData::createMapFromJsonFile(QStringLiteral(":/json/VTOLLandingPattern.FactMetaData.json"), this))
     , _landingDistanceFact      (settingsGroup, _metaDataMap[finalApproachToLandDistanceName])
     , _finalApproachAltitudeFact(settingsGroup, _metaDataMap[finalApproachAltitudeName])
+    , _useDoChangeSpeedFact     (settingsGroup, _metaDataMap[useDoChangeSpeedName])
+    , _finalApproachSpeedFact   (settingsGroup, _metaDataMap[finalApproachSpeedName])
     , _loiterRadiusFact         (settingsGroup, _metaDataMap[loiterRadiusName])
     , _loiterClockwiseFact      (settingsGroup, _metaDataMap[loiterClockwiseName])
     , _landingHeadingFact       (settingsGroup, _metaDataMap[landingHeadingName])
@@ -107,7 +109,7 @@ void VTOLLandingComplexItem::_calcGlideSlope(void)
 
 bool VTOLLandingComplexItem::_isValidLandItem(const MissionItem& missionItem)
 {
-    if (missionItem.command() != MAV_CMD_NAV_LAND ||
+    if (missionItem.command() != MAV_CMD_NAV_VTOL_LAND ||
             !(missionItem.frame() == MAV_FRAME_GLOBAL_RELATIVE_ALT || missionItem.frame() == MAV_FRAME_GLOBAL) ||
             missionItem.param1() != 0 || missionItem.param2() != 0 || missionItem.param3() != 0 || !qIsNaN(missionItem.param4())) {
         return false;
