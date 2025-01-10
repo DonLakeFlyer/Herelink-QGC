@@ -29,7 +29,7 @@ jobs:
 
     env:
       ARTIFACT: QGroundControl.apk
-      QT_VERSION: 6.8.1
+      QT_VERSION: 6.6.3
       GST_VERSION: 1.22.12
       QT_ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/custom/android/debug.keystore
       QT_ANDROID_KEYSTORE_ALIAS: androiddebugkey
