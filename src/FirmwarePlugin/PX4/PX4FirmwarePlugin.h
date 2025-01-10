@@ -34,13 +34,15 @@ public:
     QString             flightMode                      (uint8_t base_mode, uint32_t custom_mode) const override;
     bool                setFlightMode                   (const QString& flightMode, uint8_t* base_mode, uint32_t* custom_mode) override;
     void                setGuidedMode                   (Vehicle* vehicle, bool guidedMode) override;
-    QString             pauseFlightMode                 (void) const override { return _holdFlightMode; }
-    QString             missionFlightMode               (void) const override { return _missionFlightMode; }
-    QString             rtlFlightMode                   (void) const override { return _rtlFlightMode; }
-    QString             landFlightMode                  (void) const override { return _landingFlightMode; }
-    QString             takeControlFlightMode           (void) const override { return _manualFlightMode; }
-    QString             gotoFlightMode                  (void) const override { return _holdFlightMode; }
-    QString             followFlightMode                (void) const override { return _followMeFlightMode; };
+    QString             pauseFlightMode                 (void) const override;
+    QString             missionFlightMode               (void) const override;
+    QString             rtlFlightMode                   (void) const override;
+    QString             landFlightMode                  (void) const override;
+    QString             takeControlFlightMode           (void) const override;
+    QString             gotoFlightMode                  (void) const override;
+    QString             followFlightMode                (void) const override;
+    QString             takeOffFlightMode               (void) const override;
+    QString             stabilizedFlightMode            (void) const override;
     void                pauseVehicle                    (Vehicle* vehicle) override;
     void                guidedModeRTL                   (Vehicle* vehicle, bool smartRTL) override;
     void                guidedModeLand                  (Vehicle* vehicle) override;
@@ -76,20 +78,9 @@ public:
     QVariant            mainStatusIndicatorContentItem  (const Vehicle* vehicle) const override;
     const QVariantList& toolIndicators                  (const Vehicle* vehicle) override;
 
+    void                updateAvailableFlightModes      (FlightModeList modeList) override;
+
 protected:
-    typedef struct {
-        uint8_t         main_mode;
-        uint8_t         sub_mode;
-        const QString*  name;       ///< Name for flight mode
-        bool            canBeSet;   ///< true: Vehicle can be set to this flight mode
-        bool            fixedWing;  /// fixed wing compatible
-        bool            multiRotor; /// multi rotor compatible
-    } FlightModeInfo_t;
-
-    QList<FlightModeInfo_t> _flightModeInfoList;
-
-    // Use these constants to set flight modes using setFlightMode method. Don't use hardcoded string names since the
-    // names may change.
 
     // If plugin superclass wants to change a mode name, then set a new name for the flight mode in the superclass constructor
     QString _manualFlightMode;
@@ -124,12 +115,26 @@ private:
     // Vehicle specific data should go into PX4FirmwarePluginInstanceData
 };
 
-class PX4FirmwarePluginInstanceData : public QObject
+class PX4FirmwarePluginInstanceData : public FirmwarePluginInstanceData
 {
     Q_OBJECT
 
 public:
     PX4FirmwarePluginInstanceData(QObject* parent = nullptr);
+
+    // anyVersionSupportsCommand returns
+    // CommandSupportedResult::SUPPORTED if any version of the
+    // firmware has supported cmd.  It return UNSUPPORTED if no
+    // version ever has.  It returns UNKNOWN if that information is
+    // not known.
+    CommandSupportedResult anyVersionSupportsCommand(MAV_CMD cmd) const override {
+        switch (cmd) {
+        case MAV_CMD_DO_SET_MISSION_CURRENT:
+            return CommandSupportedResult::UNSUPPORTED;
+        default:
+            return CommandSupportedResult::UNKNOWN;
+        }
+    }
 
     bool versionNotified;  ///< true: user notified over version issue
 };

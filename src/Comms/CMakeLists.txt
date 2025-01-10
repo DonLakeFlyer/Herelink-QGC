@@ -1,7 +1,7 @@
 add_subdirectory(AirLink)
 add_subdirectory(MockLink)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Network Qml Test Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Network Qml)
 
 qt_add_library(Comms STATIC
     LinkConfiguration.cc
@@ -12,6 +12,8 @@ qt_add_library(Comms STATIC
     LinkManager.h
     LogReplayLink.cc
     LogReplayLink.h
+    LogReplayLinkController.cc
+    LogReplayLinkController.h
     MAVLinkProtocol.cc
     MAVLinkProtocol.h
     TCPLink.cc
@@ -23,7 +25,6 @@ qt_add_library(Comms STATIC
 target_link_libraries(Comms
     PRIVATE
         Qt6::Qml
-        Qt6::Test
         MockLink
         PositionManager
         QGC
@@ -98,15 +99,15 @@ endif()
 ############# ZEROConf
 
 if(QGC_ZEROCONF_ENABLED)
+    message(STATUS "Building QMDNSEngine")
+    FetchContent_Declare(qmdnsengine
+        GIT_REPOSITORY https://github.com/nitroshare/qmdnsengine.git
+        GIT_TAG master
+        GIT_SHALLOW TRUE
+    )
     set(BUILD_DOC OFF CACHE INTERNAL "")
     set(BUILD_EXAMPLES OFF CACHE INTERNAL "")
     set(BUILD_TESTS OFF CACHE INTERNAL "")
-
-    include(FetchContent)
-    FetchContent_Declare(qmdnsengine
-        GIT_REPOSITORY https://github.com/nitroshare/qmdnsengine.git
-        GIT_TAG 4e54bc86c8ed2d4fa2e7449d4ba6a6a2742d9eb1
-    )
     FetchContent_MakeAvailable(qmdnsengine)
 
     target_link_libraries(Comms PUBLIC qmdnsengine)

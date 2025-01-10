@@ -69,6 +69,7 @@ public:
     Q_INVOKABLE void stopVideo();
 
     void init();
+    void cleanup();
     bool autoStreamConfigured() const;
     bool decoding() const { return _decoding; }
     bool fullScreen() const { return _fullScreen; }
@@ -131,6 +132,7 @@ private:
         bool started = false;
         bool lowLatencyStreaming = false;
         size_t index = 0;
+        QString name;
     };
     QList<VideoReceiverData> _videoReceiverData = QList<VideoReceiverData>(MAX_VIDEO_RECEIVERS);
 

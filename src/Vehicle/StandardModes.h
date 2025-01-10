@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "FirmwarePlugin.h"
 #include "MAVLinkLib.h"
 
 #include <QtCore/QObject>
@@ -67,5 +68,6 @@ private:
     int _lastSeq{-1};
 
     QMap<uint32_t, Mode> _modes; ///< key is custom_mode
+    FlightModeList       _modeList;
 };
 

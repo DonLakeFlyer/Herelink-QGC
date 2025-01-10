@@ -16,6 +16,7 @@ import QtQuick.Window
 import QGroundControl
 import QGroundControl.Palette
 import QGroundControl.Controls
+import QGroundControl.FactControls
 import QGroundControl.ScreenTools
 import QGroundControl.FlightDisplay
 import QGroundControl.FlightMap
@@ -111,12 +112,12 @@ ApplicationWindow {
     //-- Global Scope Functions
 
     // This function is used to prevent view switching if there are validation errors
-    function allowViewSwitch() {
+    function allowViewSwitch(previousValidationErrorCount = 0) {
         // Run validation on active focus control to ensure it is valid before switching views
-        if (mainWindow.activeFocusControl instanceof QGCTextField) {
-            mainWindow.activeFocusControl.onEditingFinished()
+        if (mainWindow.activeFocusControl instanceof FactTextField) {
+            mainWindow.activeFocusControl._onEditingFinished()
         }
-        return globals.validationErrorCount === 0
+        return globals.validationErrorCount <= previousValidationErrorCount
     }
 
     function showPlanView() {
@@ -558,7 +559,7 @@ ApplicationWindow {
     //-- Critical Vehicle Message Popup
 
     function showCriticalVehicleMessage(message) {
-        indicatorPopup.close()
+        closeIndicatorDrawer()
         if (criticalVehicleMessagePopup.visible || QGroundControl.videoManager.fullScreen) {
             // We received additional wanring message while an older warning message was still displayed.
             // When the user close the older one drop the message indicator tool so they can see the rest of them.
@@ -660,57 +661,6 @@ ApplicationWindow {
     }
 
     //-------------------------------------------------------------------------
-    //-- Indicator Popups - deprecated, use Indicator Drawer instead
-
-    function showIndicatorPopup(item, dropItem, dim = true) {
-        indicatorPopup.currentIndicator = dropItem
-        indicatorPopup.currentItem = item
-        indicatorPopup.dim = dim
-        indicatorPopup.open()
-    }
-
-    function hideIndicatorPopup() {
-        indicatorPopup.close()
-        indicatorPopup.currentItem = null
-        indicatorPopup.currentIndicator = null
-    }
-
-    Popup {
-        id:             indicatorPopup
-        padding:        ScreenTools.defaultFontPixelWidth * 0.75
-        modal:          true
-        focus:          true
-        dim:            false
-        closePolicy:    Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        property var    currentItem:        null
-        property var    currentIndicator:   null
-        y:              ScreenTools.toolbarHeight
-        
-        background: Rectangle {
-            width:  loader.width
-            height: loader.height
-            color:  Qt.rgba(0,0,0,0)
-        }
-        Loader {
-            id:             loader
-            onLoaded: {
-                var centerX = mainWindow.contentItem.mapFromItem(indicatorPopup.currentItem, 0, 0).x - (loader.width * 0.5)
-                if((centerX + indicatorPopup.width) > (mainWindow.width - ScreenTools.defaultFontPixelWidth)) {
-                    centerX = mainWindow.width - indicatorPopup.width - ScreenTools.defaultFontPixelWidth
-                }
-                indicatorPopup.x = centerX
-            }
-        }
-        onOpened: {
-            loader.sourceComponent = indicatorPopup.currentIndicator
-        }
-        onClosed: {
-            loader.sourceComponent = null
-            indicatorPopup.currentIndicator = null
-        }
-    }
-
-    //-------------------------------------------------------------------------
     //-- Indicator Drawer
 
     function showIndicatorDrawer(drawerComponent, indicatorItem) {
@@ -797,7 +747,7 @@ ApplicationWindow {
         contentItem: QGCFlickable {
             id:             indicatorDrawerLoaderFlickable
             implicitWidth:  Math.min(mainWindow.contentItem.width - (2 * indicatorDrawer._margins) - (indicatorDrawer.padding * 2), indicatorDrawerLoader.width)
-            implicitHeight: Math.min(mainWindow.contentItem.height - (2 * indicatorDrawer._margins) - (indicatorDrawer.padding * 2), indicatorDrawerLoader.height)
+            implicitHeight: Math.min(mainWindow.contentItem.height - ScreenTools.toolbarHeight - (2 * indicatorDrawer._margins) - (indicatorDrawer.padding * 2), indicatorDrawerLoader.height)
             contentWidth:   indicatorDrawerLoader.width
             contentHeight:  indicatorDrawerLoader.height
 

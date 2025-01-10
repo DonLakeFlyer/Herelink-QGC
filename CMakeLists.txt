@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22.1)
+cmake_minimum_required(VERSION 3.24)
 
 list(APPEND CMAKE_MODULE_PATH
     ${CMAKE_SOURCE_DIR}/cmake
@@ -64,6 +64,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# set(CMAKE_AUTOGEN_BETTER_GRAPH_MULTI_CONFIG ON)
 
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release")
 if(NOT CMAKE_BUILD_TYPE)
@@ -117,8 +118,8 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 include(Qt6QGCConfiguration)
 
 set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml" CACHE PATH "Install path for QML" FORCE)
-# set(QML_IMPORT_PATH ${CMAKE_SOURCE_DIR}/qml ${CMAKE_BINARY_DIR}/imports CACHE STRING "Extra QML Import Paths" FORCE)
-add_compile_definitions(QT_DISABLE_DEPRECATED_UP_TO=0x060600)
+set(QML_IMPORT_PATH ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/qml ${CMAKE_BINARY_DIR}/imports CACHE STRING "Extra QML Import Paths" FORCE)
+add_compile_definitions(QT_DISABLE_DEPRECATED_UP_TO=0x060700)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_definitions(
@@ -137,13 +138,15 @@ endif()
 if(ANDROID)
     cmake_print_variables(QT_ANDROID_APPLICATION_ARGUMENTS QT_HOST_PATH)
 
-    # QT_USE_TARGET_ANDROID_BUILD_DIR
+    # set(QT_USE_TARGET_ANDROID_BUILD_DIR ON CACHE BOOL "Use Target Android Build Dir" FORCE)
+
     list(APPEND QT_ANDROID_MULTI_ABI_FORWARD_VARS QGC_STABLE_BUILD)
     list(APPEND QT_ANDROID_MULTI_ABI_FORWARD_VARS QT_HOST_PATH)
     cmake_print_variables(QT_ANDROID_MULTI_ABI_FORWARD_VARS)
     # QT_ANDROID_DEPLOY_RELEASE
     # set(QT_ANDROID_DEPLOYMENT_TYPE ON CACHE BOOL "Deployment Type")
     cmake_dependent_option(QT_ANDROID_SIGN_APK "Enable Signing APK" ON "CMAKE_BUILD_TYPE STREQUAL Release" OFF)
+    # QT_ANDROID_SIGN_AAB
     if(QT_ANDROID_SIGN_APK)
         message(STATUS "Signing APK")
         message(STATUS "QT_ANDROID_KEYSTORE_PATH $ENV{QT_ANDROID_KEYSTORE_PATH}")
@@ -153,8 +156,17 @@ if(ANDROID)
 endif()
 
 set(QT_SILENCE_MISSING_DEPENDENCY_TARGET_WARNING ON)
+set(QT_MINIMUM_VERSION 6.6.3)
+
+find_program(QMAKE_EXECUTABLE NAMES qmake HINTS ${QTDIR} ENV QTDIR PATH_SUFFIXES bin)
+execute_process(COMMAND ${QMAKE_EXECUTABLE} -query QT_VERSION OUTPUT_VARIABLE QT_VERSION)
+if(QT_VERSION LESS QT_MINIMUM_VERSION)
+    MESSAGE(FATAL_ERROR "Minimum supported Qt version: ${QT_MINIMUM_VERSION}.
+    Installed version: ${QT_VERSION}")
+endif()
 
 find_package(Qt6
+    ${QT_MINIMUM_VERSION}
     REQUIRED
     COMPONENTS
         Concurrent
@@ -183,23 +195,31 @@ find_package(Qt6
         LinguistTools
         MultimediaQuickPrivate
         Quick3D
+        Quick3DTools
         SerialPort
-        WaylandClient
     HINTS
         ${QT_LIBRARY_HINTS}
 )
+
+if(LINUX)
+    find_package(Qt6 ${QT_MINIMUM_VERSION} COMPONENTS WaylandClient)
+endif()
 
 if(NOT Qt6LinguistTools_DIR)
     set(Qt6LinguistTools_DIR ${QT_HOST_PATH}/lib/cmake/Qt6LinguistTools)
 endif()
 
-# Require 6.6.3 because otherwise libQt6QuickControls2Basic.so.6 &
-# libQt6QuickControls2BasicStyleImpl.so.6 are missing.
-qt_standard_project_setup(REQUIRES 6.6.3)
+qt_standard_project_setup(
+    REQUIRES ${QT_MINIMUM_VERSION}
+    SUPPORTS_UP_TO ${QT_MINIMUM_VERSION}
+)
 
 qt_policy(
     SET QTP0001 NEW
     SET QTP0002 NEW
+    SET QTP0003 NEW
+    SET QTP0004 NEW
+    SET QTP0005 NEW
 )
 
 #######################################################
@@ -289,10 +309,11 @@ qt_add_executable(${PROJECT_NAME}
 )
 
 if(Qt6LinguistTools_FOUND)
-    # TODO: Update to new qt_add_translations form in Qt6.7
     file(GLOB TS_SOURCES ${CMAKE_SOURCE_DIR}/translations/qgc_*.ts)
     set_source_files_properties(${TS_SOURCES} PROPERTIES OUTPUT_LOCATION "${CMAKE_BINARY_DIR}/i18n")
-    qt_add_translations(${PROJECT_NAME}
+    qt_add_translations(${CMAKE_PROJECT_NAME}
+        # TS_FILE_BASE ${CMAKE_PROJECT_NAME}
+        # TS_FILE_DIR ${CMAKE_SOURCE_DIR}/translations/
         TS_FILES ${TS_SOURCES}
         RESOURCE_PREFIX "/"
         LUPDATE_OPTIONS -no-obsolete
@@ -380,7 +401,7 @@ elseif(IOS)
     set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2") # iPhone,iPad
     set(CMAKE_XCODE_ATTRIBUTE_INFOPLIST_FILE "${CMAKE_CURRENT_SOURCE_DIR}/deploy/ios/iOS-Info.plist")
 
-    set_target_properties(${PROJECT_NAME}
+    set_target_properties(${CMAKE_PROJECT_NAME}
         PROPERTIES
             QT_IOS_LAUNCH_SCREEN ${CMAKE_SOURCE_DIR}/deploy/ios/QGCLaunchScreen.xib
             XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.mavlink.qgroundcontrol"
@@ -394,6 +415,9 @@ elseif(IOS)
             XCODE_ATTRIBUTE_INFOPLIST_KEY_LSApplicationCategoryType "public.app-category.mycategory"
             XCODE_ATTRIBUTE_GCC_GENERATE_DEBUGGING_SYMBOLS "YES"
     )
+
+    # set(QT_NO_FFMPEG_XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY ON)
+    # qt_add_ios_ffmpeg_libraries(CMAKE_PROJECT_NAME)
 elseif(ANDROID)
     FetchContent_Declare(android_openssl
         DOWNLOAD_EXTRACT_TIMESTAMP true
@@ -401,7 +425,7 @@ elseif(ANDROID)
     )
     FetchContent_MakeAvailable(android_openssl)
     include(${android_openssl_SOURCE_DIR}/android_openssl.cmake)
-    add_android_openssl_libraries(${PROJECT_NAME})
+    add_android_openssl_libraries(${CMAKE_PROJECT_NAME})
 
     set(ANDROID_PLATFORM_ARCHITECTURE_CODE)
     if(${ANDROID_ABI} STREQUAL "armeabi-v7a")
@@ -441,17 +465,21 @@ elseif(ANDROID)
         endif()
     endif()
 
-    set_target_properties(${PROJECT_NAME}
+    set_target_properties(${CMAKE_PROJECT_NAME}
         PROPERTIES
             # QT_ANDROID_ABIS ${ANDROID_ABI}
             QT_ANDROID_MIN_SDK_VERSION ${QGC_QT_ANDROID_MIN_SDK_VERSION}
             QT_ANDROID_TARGET_SDK_VERSION ${QGC_QT_ANDROID_TARGET_SDK_VERSION}
+            QT_ANDROID_PACKAGE_NAME "${QGC_ANDROID_PACKAGE_NAME}"
             QT_ANDROID_PACKAGE_SOURCE_DIR "${QGC_ANDROID_PACKAGE_SOURCE_DIR}"
             QT_ANDROID_VERSION_NAME ${CMAKE_PROJECT_VERSION}
             QT_ANDROID_VERSION_CODE ${ANDROID_VERSION_CODE}
-            # QT_QML_ROOT_PATH ${CMAKE_SOURCE_DIR}
+            QT_QML_ROOT_PATH ${CMAKE_SOURCE_DIR}/src
+            # QT_ANDROID_SDK_BUILD_TOOLS_REVISION
+            # QT_ANDROID_SYSTEM_LIBS_PREFIX
     )
-    # get_target_property(QGC_ANDROID_DEPLOY_FILE ${PROJECT_NAME} QT_ANDROID_DEPLOYMENT_SETTINGS_FILE)
+    get_target_property(QGC_ANDROID_DEPLOY_FILE ${CMAKE_PROJECT_NAME} QT_ANDROID_DEPLOYMENT_SETTINGS_FILE)
+    cmake_print_variables(QGC_ANDROID_DEPLOY_FILE)
 elseif(LINUX)
 
 endif()
@@ -499,10 +527,14 @@ install(
     BUNDLE  DESTINATION .
 )
 
+set(deploy_tool_options_arg "")
+if(APPLE)
+    set(deploy_tool_options_arg -qmldir=${CMAKE_SOURCE_DIR}/src -hardened-runtime -timestamp -appstore-compliant)
+endif()
+
 qt_generate_deploy_qml_app_script(
     TARGET ${PROJECT_NAME}
     OUTPUT_SCRIPT deploy_script
-    # DEPLOY_TOOL_OPTIONS
     MACOS_BUNDLE_POST_BUILD
     NO_UNSUPPORTED_PLATFORM_ERROR
     DEPLOY_USER_QML_MODULES_ON_UNSUPPORTED_PLATFORM
@@ -550,6 +582,14 @@ elseif(WIN32)
     install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/CreateWinInstaller.cmake")
 elseif(MACOS)
     install(SCRIPT "${CMAKE_SOURCE_DIR}/cmake/CreateMacDMG.cmake")
+endif()
+
+## Enforce Handling of All Enum Cases
+
+if(WIN32)
+    add_compile_options(/w44265 /we44265)
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wswitch -Werror=switch")
 endif()
 
 include(printSummary)
