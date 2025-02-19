@@ -43,6 +43,7 @@ public:
     DEFINE_SETTINGFACT(androidSaveToSDCard)
     DEFINE_SETTINGFACT(useChecklist)
     DEFINE_SETTINGFACT(enforceChecklist)
+    DEFINE_SETTINGFACT(enableMultiVehiclePanel)
     DEFINE_SETTINGFACT(mapboxToken)
     DEFINE_SETTINGFACT(mapboxAccount)
     DEFINE_SETTINGFACT(mapboxStyle)
@@ -72,7 +73,7 @@ public:
     Q_PROPERTY(QString videoSavePath            READ videoSavePath              NOTIFY savePathsChanged)
     Q_PROPERTY(QString photoSavePath            READ photoSavePath              NOTIFY savePathsChanged)
     Q_PROPERTY(QString crashSavePath            READ crashSavePath              NOTIFY savePathsChanged)
-    Q_PROPERTY(QString customActionsSavePath    READ customActionsSavePath      NOTIFY savePathsChanged)
+    Q_PROPERTY(QString mavlinkActionsSavePath    READ mavlinkActionsSavePath      NOTIFY savePathsChanged)
 
     Q_PROPERTY(QString planFileExtension        MEMBER planFileExtension        CONSTANT)
     Q_PROPERTY(QString missionFileExtension     MEMBER missionFileExtension     CONSTANT)
@@ -91,7 +92,7 @@ public:
     QString videoSavePath         ();
     QString photoSavePath         ();
     QString crashSavePath         ();
-    QString customActionsSavePath ();
+    QString mavlinkActionsSavePath ();
 
     // Helper methods for working with firstRunPromptIds QVariant settings string list
     static QList<int> firstRunPromptsIdsVariantToList   (const QVariant& firstRunPromptIds);
@@ -119,7 +120,7 @@ public:
     static constexpr const char* videoDirectory =           QT_TRANSLATE_NOOP("AppSettings", "Video");
     static constexpr const char* photoDirectory =           QT_TRANSLATE_NOOP("AppSettings", "Photo");
     static constexpr const char* crashDirectory =           QT_TRANSLATE_NOOP("AppSettings", "CrashLogs");
-    static constexpr const char* customActionsDirectory =   QT_TRANSLATE_NOOP("AppSettings", "CustomActions");
+    static constexpr const char* mavlinkActionsDirectory =  QT_TRANSLATE_NOOP("AppSettings", "MavlinkActions");
 
 signals:
     void savePathsChanged();

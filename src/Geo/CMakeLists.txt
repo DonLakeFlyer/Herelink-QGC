@@ -17,49 +17,42 @@ target_include_directories(Geo PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 #===========================================================================#
 
-set(MINIMUM_GEOGRAPHICLIB_VERSION 2.3)
-set(TARGET_GEOGRAPHICLIB_VERSION 2.5)
-
-if(NOT QGC_BUILD_DEPENDENCIES)
-    if(LINUX)
-        list(APPEND CMAKE_MODULE_PATH "/usr/share/cmake/geographiclib")
-    endif()
-    find_package(GeographicLib ${MINIMUM_GEOGRAPHICLIB_VERSION} COMPONENTS STATIC)
-    if(TARGET GeographicLib::GeographicLib)
-        target_link_libraries(Geo PRIVATE GeographicLib::GeographicLib)
-        return()
-    elseif(GeographicLib_FOUND)
-        target_link_libraries(Geo PRIVATE ${GeographicLib_LIBRARIES})
-        target_include_directories(Geo PRIVATE ${GeographicLib_INCLUDE_DIRS})
-        target_link_directories(Geo PRIVATE ${GeographicLib_LIBRARY_DIRS})
-        return()
-    endif()
+if(LINUX AND EXISTS "/usr/share/cmake/geographiclib")
+    list(APPEND CMAKE_MODULE_PATH "/usr/share/cmake/geographiclib")
 endif()
 
-message(STATUS "Building GeographicLib")
-FetchContent_Declare(GeographicLib
-    GIT_REPOSITORY https://github.com/geographiclib/geographiclib.git
-    GIT_TAG "r${TARGET_GEOGRAPHICLIB_VERSION}"
-    GIT_SHALLOW TRUE
+include(CPM)
+# CPMAddPackage(
+#     NAME geographiclib
+#     VERSION 2.5
+#     URL https://sourceforge.net/projects/geographiclib/files/distrib-C%2B%2B/GeographicLib-2.5.tar.gz/download
+#     DOWNLOAD_ONLY
+#     SOURCE_SUBDIR src
+# )
+
+CPMAddPackage(
+    NAME geographiclib
+    VERSION 2.5
+    GITHUB_REPOSITORY geographiclib/geographiclib
+    GIT_TAG r2.5
+    OPTIONS
+        "BUILD_BOTH_LIBS OFF"
+        "BUILD_DOCUMENTATION OFF"
+        "BUILD_MANPAGES OFF"
+        "PACKAGE_DEBUG_LIBS OFF"
+        "APPLE_MULTIPLE_ARCHITECTURES OFF"
+        "INCDIR OFF"
+        "BINDIR OFF"
+        "SBINDIR OFF"
+        "LIBDIR ${CMAKE_INSTALL_LIBDIR}"
+        "DLLDIR ${CMAKE_INSTALL_BINDIR}"
+        "MANDIR OFF"
+        "CMAKEDIR OFF"
+        "PKGDIR OFF"
+        "DOCDIR OFF"
+        "EXAMPLEDIR OFF"
 )
-set(BUILD_BOTH_LIBS OFF CACHE INTERNAL "" FORCE)
-set(BUILD_DOCUMENTATION OFF CACHE INTERNAL "" FORCE)
-set(BUILD_MANPAGES OFF CACHE INTERNAL "" FORCE)
-set(PACKAGE_DEBUG_LIBS OFF CACHE INTERNAL "" FORCE)
-set(APPLE_MULTIPLE_ARCHITECTURES OFF CACHE INTERNAL "" FORCE)
-set(INCDIR "" CACHE INTERNAL "" FORCE)
-set(BINDIR "" CACHE INTERNAL "" FORCE)
-set(SBINDIR "" CACHE INTERNAL "" FORCE)
-set(LIBDIR "${CMAKE_INSTALL_LIBDIR}" CACHE STRING "" FORCE)
-set(DLLDIR "${CMAKE_INSTALL_BINDIR}" CACHE INTERNAL "" FORCE)
-set(MANDIR "" CACHE INTERNAL "" FORCE)
-set(CMAKEDIR "" CACHE INTERNAL "" FORCE)
-set(PKGDIR "" CACHE INTERNAL "" FORCE)
-set(DOCDIR "" CACHE INTERNAL "" FORCE)
-set(EXAMPLEDIR "" CACHE INTERNAL "" FORCE)
-FetchContent_MakeAvailable(GeographicLib)
 
 if(TARGET GeographicLib::GeographicLib)
     target_link_libraries(Geo PRIVATE GeographicLib::GeographicLib)
-    return()
 endif()

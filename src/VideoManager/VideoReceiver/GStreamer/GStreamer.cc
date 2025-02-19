@@ -41,9 +41,6 @@ GST_PLUGIN_STATIC_DECLARE(mpegtsdemux);
 GST_PLUGIN_STATIC_DECLARE(opengl);
 GST_PLUGIN_STATIC_DECLARE(tcp);
 GST_PLUGIN_STATIC_DECLARE(app);
-// #ifndef Q_OS_ANDROID
-// GST_PLUGIN_STATIC_DECLARE(va);
-// #endif
 #ifdef Q_OS_ANDROID
 GST_PLUGIN_STATIC_DECLARE(androidmedia);
 #elif defined(Q_OS_IOS)
@@ -107,8 +104,9 @@ static void _qgcputenv(const QString &key, const QString &root, const QString &p
 static void _setGstEnvVars()
 {
     const QString currentDir = QCoreApplication::applicationDirPath();
+    qCDebug(GStreamerLog) << "App Directory:" << currentDir;
 
-#if defined(Q_OS_MAC)
+#if defined(Q_OS_MACOS) && defined(QGC_GST_MACOS_FRAMEWORK)
     _qgcputenv("GST_REGISTRY_REUSE_PLUGIN_SCANNER", "no");
     _qgcputenv("GST_PLUGIN_SCANNER", currentDir, "/../Frameworks/GStreamer.framework/Versions/1.0/libexec/gstreamer-1.0/gst-plugin-scanner");
     _qgcputenv("GST_PTP_HELPER_1_0", currentDir, "/../Frameworks/GStreamer.framework/Versions/1.0/libexec/gstreamer-1.0/gst-ptp-helper");
@@ -148,9 +146,6 @@ static void _registerPlugins()
     GST_PLUGIN_STATIC_REGISTER(opengl);
     GST_PLUGIN_STATIC_REGISTER(tcp);
     GST_PLUGIN_STATIC_REGISTER(app);
-// #ifndef Q_OS_ANDROID
-//     GST_PLUGIN_STATIC_REGISTER(va);
-// #endif
 #ifdef Q_OS_ANDROID
     GST_PLUGIN_STATIC_REGISTER(androidmedia);
 #elif defined(Q_OS_IOS)

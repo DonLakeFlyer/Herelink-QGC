@@ -70,7 +70,7 @@ public:
     static bool isLinux() { return false; }
     static bool isMacOS() { return false; }
     static bool isWindows() { return false; }
-#elif defined(Q_OS_MAC)
+#elif defined(Q_OS_MACOS)
     static bool isAndroid() { return false; }
     static bool isiOS() { return false; }
     static bool isLinux() { return false; }
@@ -96,7 +96,7 @@ public:
     static bool isWindows() { return false; }
 #endif
 
-#if defined(NO_SERIAL_LINK)
+#if defined(QGC_NO_SERIAL_LINK)
     static bool isSerialAvailable() { return false; }
 #else
     static bool isSerialAvailable() { return true; }

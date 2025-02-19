@@ -193,6 +193,7 @@
 		<file alias="QGroundControl/Controls/TakeoffItemMapVisual.qml">../src/PlanView/TakeoffItemMapVisual.qml</file>
 		<file alias="QGroundControl/Controls/ToolIndicatorPage.qml">../src/QmlControls/ToolIndicatorPage.qml</file>
 		<file alias="QGroundControl/Controls/ToolStrip.qml">../src/QmlControls/ToolStrip.qml</file>
+		<file alias="QGroundControl/Controls/ToolStripDropPanel.qml">../src/QmlControls/ToolStripDropPanel.qml</file>
 		<file alias="QGroundControl/Controls/ToolStripHoverButton.qml">../src/QmlControls/ToolStripHoverButton.qml</file>
 		<file alias="QGroundControl/Controls/TransectStyleComplexItemEditor.qml">../src/PlanView/TransectStyleComplexItemEditor.qml</file>
 		<file alias="QGroundControl/Controls/TransectStyleComplexItemStats.qml">../src/PlanView/TransectStyleComplexItemStats.qml</file>
@@ -229,11 +230,11 @@
 		<file alias="QGroundControl/FlightDisplay/FlyViewVideo.qml">../src/FlightDisplay/FlyViewVideo.qml</file>
 		<file alias="QGroundControl/FlightDisplay/OnScreenGimbalController.qml">../src/FlightDisplay/OnScreenGimbalController.qml</file>
 		<file alias="QGroundControl/FlightDisplay/FlyViewWidgetLayer.qml">../src/FlightDisplay/FlyViewWidgetLayer.qml</file>
-		<file alias="QGroundControl/FlightDisplay/GuidedActionActionList.qml">../src/FlightDisplay/GuidedActionActionList.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewAdditionalActionsButton.qml">../src/FlightDisplay/FlyViewAdditionalActionsButton.qml</file>
 		<file alias="QGroundControl/FlightDisplay/GuidedActionConfirm.qml">../src/FlightDisplay/GuidedActionConfirm.qml</file>
 		<file alias="QGroundControl/FlightDisplay/GuidedActionsController.qml">../src/FlightDisplay/GuidedActionsController.qml</file>
 		<file alias="QGroundControl/FlightDisplay/GuidedActionLand.qml">../src/FlightDisplay/GuidedActionLand.qml</file>
-		<file alias="QGroundControl/FlightDisplay/GuidedActionList.qml">../src/FlightDisplay/GuidedActionList.qml</file>
+		<file alias="QGroundControl/FlightDisplay/FlyViewAdditionalActionsList.qml">../src/FlightDisplay/FlyViewAdditionalActionsList.qml</file>
 		<file alias="QGroundControl/FlightDisplay/GuidedActionTakeoff.qml">../src/FlightDisplay/GuidedActionTakeoff.qml</file>
 		<file alias="QGroundControl/FlightDisplay/GuidedActionGripper.qml">../src/FlightDisplay/GuidedActionGripper.qml</file>
 		<file alias="QGroundControl/FlightDisplay/GripperMenu.qml">../src/FlightDisplay/GripperMenu.qml</file>
@@ -355,7 +356,7 @@
 		<file alias="CameraSection.FactMetaData.json">../src/MissionManager/CameraSection.FactMetaData.json</file>
 		<file alias="CameraSpec.FactMetaData.json">../src/MissionManager/CameraSpec.FactMetaData.json</file>
 		<file alias="CorridorScan.SettingsGroup.json">../src/MissionManager/CorridorScan.SettingsGroup.json</file>
-		<file alias="CustomMavlinkActions.SettingsGroup.json">../src/Settings/CustomMavlinkActions.SettingsGroup.json</file>
+		<file alias="MavlinkActions.SettingsGroup.json">../src/Settings/MavlinkActions.SettingsGroup.json</file>
 		<file alias="RemoteID.SettingsGroup.json">../src/Settings/RemoteID.SettingsGroup.json</file>
 		<file alias="EditPositionDialog.FactMetaData.json">../src/QmlControls/EditPositionDialog.FactMetaData.json</file>
 		<file alias="FirmwareUpgrade.SettingsGroup.json">../src/Settings/FirmwareUpgrade.SettingsGroup.json</file>

@@ -18,20 +18,12 @@ ToolStripActionList {
     signal displayPreFlightChecklist
 
     model: [
-        ToolStripAction {
-            text:           qsTr("Plan")
-            iconSource:     "/qmlimages/Plan.svg"
-            onTriggered:{
-                mainWindow.showPlanView()
-                viewer3DWindow.close()
-            }
-        },
         PreFlightCheckListShowAction { onTriggered: displayPreFlightChecklist() },
         GuidedActionTakeoff { },
         GuidedActionLand { },
         GuidedActionRTL { },
         GuidedActionPause { },
-        GuidedActionActionList { },
+        FlyViewAdditionalActionsButton { },
         GuidedToolStripAction {
             text:       _guidedController._customController.customButtonTitle
             iconSource: "/res/gear-white.svg"

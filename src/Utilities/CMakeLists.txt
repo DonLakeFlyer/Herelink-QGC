@@ -29,7 +29,7 @@ qt_add_library(Utilities STATIC
     StateMachine.h
 )
 
-if(MOBILE)
+if(ANDROID OR IOS)
     target_sources(Utilities PRIVATE MobileScreenMgr.h)
     if(ANDROID)
         target_sources(Utilities PRIVATE MobileScreenMgr.cc)
@@ -62,31 +62,21 @@ endif()
 
 #===========================================================================#
 
-set(MINIMUM_SHAPELIB_VERSION 1.6.0)
-set(TARGET_SHAPELIB_VERSION 1.6.1)
-
-if(NOT QGC_BUILD_DEPENDENCIES)
-    find_package(Shapelib ${MINIMUM_SHAPELIB_VERSION})
-    if(TARGET SHAPELIB::shp)
-        target_link_libraries(Utilities PRIVATE SHAPELIB::shp)
-        return()
-    endif()
-endif()
-
-message(STATUS "Building Shapelib")
-FetchContent_Declare(shapelib
-    GIT_REPOSITORY https://github.com/OSGeo/shapelib.git
-    GIT_TAG "v${TARGET_SHAPELIB_VERSION}"
-    GIT_SHALLOW TRUE
+include(CPM)
+CPMAddPackage(
+    NAME Shapelib
+    VERSION 1.6.1
+    GITHUB_REPOSITORY OSGeo/shapelib
+    OPTIONS
+        "BUILD_SHAPELIB_CONTRIB OFF"
+        "BUILD_APPS OFF"
+        "BUILD_TESTING OFF"
 )
-set(BUILD_SHAPELIB_CONTRIB OFF CACHE INTERNAL "" FORCE)
-set(BUILD_APPS OFF CACHE INTERNAL "" FORCE)
-set(saved_BUILD_TESTING ${BUILD_TESTING})
-set(BUILD_TESTING OFF CACHE INTERNAL "Disable Testing for Shapelib" FORCE)
-FetchContent_MakeAvailable(shapelib)
-set(BUILD_TESTING ${saved_BUILD_TESTING} CACHE INTERNAL "Restore BUILD_TESTING from Shapelib" FORCE)
 
-if(TARGET shp)
-    target_link_libraries(Utilities PRIVATE shp)
-    return()
+if(Shapelib_ADDED)
+    if(TARGET shp)
+        target_link_libraries(Utilities PRIVATE shp)
+    elseif(TARGET shapelib::shp)
+        target_link_libraries(Utilities PRIVATE shapelib::shp)
+    endif()
 endif()

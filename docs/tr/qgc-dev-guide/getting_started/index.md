@@ -69,7 +69,7 @@ You **must install Qt as described below** instead of using pre-built packages f
 
 To install Qt:
 
-1. Download and run the [Qt Online Installer](http://www.qt.io/download-open-source)
+1. Download and run the [Qt Online Installer](https://www.qt.io/download-qt-installer-oss)
    - **Ubuntu:**
      - Set the downloaded file to executable using: `chmod +x`.
      - You may also need to install libxcb-cursor.
@@ -206,7 +206,7 @@ Example commands to build a default QGC and run it afterwards:
 
 - **Parallel builds:** For non Windows builds, you can use the `-j#` option to run parellel builds.
 - **If you get this error when running _QGroundControl_**: `/usr/lib/x86_64-linux-gnu/libstdc++.so.6: version 'GLIBCXX_3.4.20' not found.`, you need to either update to the latest _gcc_, or install the latest _libstdc++.6_ using: `sudo apt-get install libstdc++6`.
-- **Unit tests:** To run the [unit tests](../contribute/unit_tests.md), build in `debug` mode with `UNITTEST_BUILD` definition, and then copy `deploy/qgroundcontrol-start.sh` script into the `debug` directory before running the tests.
+- **Unit tests:** To run the [unit tests](../contribute/unit_tests.md), build in `debug` mode with `QGC_UNITTEST_BUILD` definition, and then copy `deploy/qgroundcontrol-start.sh` script into the `debug` directory before running the tests.
 
 ## Building QGC Installation Files
 

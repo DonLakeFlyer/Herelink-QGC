@@ -94,7 +94,7 @@ RowLayout {
                         }
                     } else {
                         // Best we can do is determine readiness based on AutoPilot component setup and health indicators from SYS_STATUS
-                        if (_activeVehicle.allSensorsHealthy && _activeVehicle.autopilot.setupComplete) {
+                        if (_activeVehicle.allSensorsHealthy && _activeVehicle.autopilotPlugin.setupComplete) {
                             _mainStatusBGColor = "green"
                             return mainStatusLabel._readyToFlyText
                         } else {
@@ -328,16 +328,16 @@ RowLayout {
                     QGCButton {
                         text: qsTr("Configure")
                         onClicked: {                            
-                            mainWindow.showVehicleSetupTool(qsTr("Parameters"))
+                            mainWindow.showVehicleConfigParametersPage()
                             mainWindow.closeIndicatorDrawer()
                         }
                     }
 
-                    QGCLabel { Layout.fillWidth: true; text: qsTr("Initial Vehicle Setup") }
+                    QGCLabel { Layout.fillWidth: true; text: qsTr("Vehicle Configuration") }
                     QGCButton {
                         text: qsTr("Configure")
                         onClicked: {                            
-                            mainWindow.showVehicleSetupTool()
+                            mainWindow.showVehicleConfig()
                             mainWindow.closeIndicatorDrawer()
                         }
                     }

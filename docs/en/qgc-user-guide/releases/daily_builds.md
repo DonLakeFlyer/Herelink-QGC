@@ -21,9 +21,5 @@ These can be downloaded from the links below (install as described in [Download 
   :::
 
 - [Linux](https://d176tv9ibo4jno.cloudfront.net/builds/master/QGroundControl-x86_64.AppImage)
-- [Android](https://play.google.com/store/apps/details?id=org.mavlink.qgroundcontrolbeta) - Google Play: Listed as _QGroundControl (Daily Test Build)_.
+- [Android](https://d176tv9ibo4jno.cloudfront.net/builds/master/QGroundControl.apk)
 - iOS currently unavailable
-
-::: info
-The QGroundControl Continous Delivery pipeline from time to time might experience issues uploading to the Google Play store. You can find the daily build APK for Android devices for direct download here: [QGroundControl.apk](https://d176tv9ibo4jno.cloudfront.net/builds/master/QGroundControl.apk)
-:::

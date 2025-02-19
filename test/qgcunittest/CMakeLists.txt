@@ -16,11 +16,11 @@ target_link_libraries(qgcunittest
         MissionManager
         Settings
         Vehicle
-        VehicleComponents
+        ComponentInformation
+        Qt6::Test
     PUBLIC
         Qt6::Core
         Qt6::Positioning
-        Qt6::Test
         MAVLink
         MockLink
 )

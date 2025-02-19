@@ -4,9 +4,6 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Test)
 
-include(CTest)
-enable_testing()
-
 # if(ANDROID)
     # include(AndroidTestUtilities)
 # endif()
@@ -125,6 +122,7 @@ add_qgc_test(MAVLinkLogManagerTest)
 
 # set(UNIT_TESTING_RESOURCES)
 # qt_add_resources(UNIT_TESTING_RESOURCES UnitTest.qrc)
+
 qt_add_library(qgctest
     STATIC
         UnitTestList.cc

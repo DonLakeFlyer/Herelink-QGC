@@ -31,24 +31,27 @@ target_link_libraries(MAVLink
 
 target_include_directories(MAVLink PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-############# MAVLink
-
-# TODO:
-# FetchContent_Declare(mavlink
-#     GIT_REPOSITORY https://github.com/mavlink/mavlink.git
-#     GIT_TAG master
-#     GIT_SHALLOW TRUE
-# )
-# set(MAVLINK_DIALECT all)
-# set(MAVLINK_VERSION 2.0)
-# FetchContent_MakeAvailable(mavlink)
+#===========================================================================#
 
 message(STATUS "Building MAVLink")
-FetchContent_Declare(mavlink
+
+# TODO:
+# include(CPM)
+# CPMAddPackage(
+#     NAME mavlink
+#     GITHUB_REPOSITORY mavlink/mavlink
+#     GIT_TAG master
+#     OPTIONS
+#         "MAVLINK_DIALECT all"
+#         "MAVLINK_VERSION 2.0"
+# )
+
+include(CPM)
+CPMAddPackage(
+    NAME mavlink
     GIT_REPOSITORY ${QGC_MAVLINK_GIT_REPO}
     GIT_TAG ${QGC_MAVLINK_GIT_TAG}
 )
-FetchContent_MakeAvailable(mavlink)
 
 target_include_directories(MAVLink
     PUBLIC

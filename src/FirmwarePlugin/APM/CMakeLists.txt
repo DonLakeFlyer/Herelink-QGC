@@ -1,7 +1,8 @@
 find_package(Qt6 REQUIRED COMPONENTS Core Network)
 
-set(APM_RESOURCES)
-qt_add_resources(APM_RESOURCES APMResources.qrc)
+# set(APM_RESOURCES)
+# qt_add_resources(APM_RESOURCES APMResources.qrc)
+
 qt_add_library(APMFirmwarePlugin STATIC
     APMFirmwarePlugin.cc
     APMFirmwarePlugin.h
@@ -17,7 +18,7 @@ qt_add_library(APMFirmwarePlugin STATIC
     ArduRoverFirmwarePlugin.h
     ArduSubFirmwarePlugin.cc
     ArduSubFirmwarePlugin.h
-    ${APM_RESOURCES}
+    # ${APM_RESOURCES}
 )
 
 target_link_libraries(APMFirmwarePlugin
@@ -42,13 +43,12 @@ target_link_libraries(APMFirmwarePlugin
 
 target_include_directories(APMFirmwarePlugin PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-message(STATUS "Fetching ArduPilot Parameters")
-FetchContent_Declare(ArduPilotParams
-    GIT_REPOSITORY https://github.com/ArduPilot/ParameterRepository.git
+include(CPM)
+CPMAddPackage(
+    NAME ArduPilotParams
+    GITHUB_REPOSITORY ArduPilot/ParameterRepository
     GIT_TAG main
-    GIT_SHALLOW TRUE
 )
-FetchContent_MakeAvailable(ArduPilotParams)
 
 # file(GLOB QML_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*.qml)
 # # file(GLOB QML_RESOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/res/*/*.*)

@@ -27,8 +27,8 @@
 #include "QGCGeoBoundingCube.h"
 #include "QGCMapPolygon.h"
 #include "QGCMapCircle.h"
-#include "CustomAction.h"
-#include "CustomActionManager.h"
+#include "MavlinkAction.h"
+#include "MavlinkActionManager.h"
 #include "EditPositionDialogController.h"
 #include "ParameterEditorController.h"
 #include "QGCFileDialogController.h"
@@ -43,7 +43,7 @@
 #include "ToolStripActionList.h"
 #include "VideoManager.h"
 #include "MultiVehicleManager.h"
-#ifndef NO_SERIAL_LINK
+#ifndef QGC_NO_SERIAL_LINK
 #include "GPSManager.h"
 #include "GPSRtk.h"
 #endif
@@ -84,8 +84,8 @@ void QGroundControlQmlGlobal::registerQmlTypes()
     qmlRegisterUncreatableType<QGCMapPolygon>           ("QGroundControl.FlightMap",             1, 0, "QGCMapPolygon",       "Reference only");
     qmlRegisterUncreatableType<QmlObjectListModel>      ("QGroundControl",                       1, 0, "QmlObjectListModel",  "Reference only");
 
-    qmlRegisterType<CustomAction>                       ("QGroundControl.Controllers",           1, 0, "CustomAction");
-    qmlRegisterType<CustomActionManager>                ("QGroundControl.Controllers",           1, 0, "CustomActionManager");
+    qmlRegisterType<MavlinkAction>                      ("QGroundControl.Controllers",           1, 0, "MavlinkAction");
+    qmlRegisterType<MavlinkActionManager>               ("QGroundControl.Controllers",           1, 0, "MavlinkActionManager");
     qmlRegisterType<EditPositionDialogController>       ("QGroundControl.Controllers",           1, 0, "EditPositionDialogController");
     qmlRegisterType<HorizontalFactValueGrid>            ("QGroundControl.Templates",             1, 0, "HorizontalFactValueGrid");
     qmlRegisterType<ParameterEditorController>          ("QGroundControl.Controllers",           1, 0, "ParameterEditorController");
@@ -116,7 +116,7 @@ QGroundControlQmlGlobal::QGroundControlQmlGlobal(QObject *parent)
     , _settingsManager(SettingsManager::instance())
     , _corePlugin(QGCCorePlugin::instance())
     , _globalPalette(new QGCPalette(this))
-#ifndef NO_SERIAL_LINK
+#ifndef QGC_NO_SERIAL_LINK
     , _gpsRtkFactGroup(GPSManager::instance()->gpsRtk()->gpsRtkFactGroup())
 #endif
 #ifndef QGC_AIRLINK_DISABLED

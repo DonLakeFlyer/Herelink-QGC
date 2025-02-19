@@ -608,7 +608,6 @@ void Vehicle::_mavlinkMessageReceived(LinkInterface* link, mavlink_message_t mes
         }
     }
         break;
-#ifdef DAILY_BUILD // Disable use of development/WIP MAVLink messages for release builds
         case MAVLINK_MSG_ID_AVAILABLE_MODES_MONITOR:
     {
         // Avoid duplicate requests during initial connection setup
@@ -622,10 +621,9 @@ void Vehicle::_mavlinkMessageReceived(LinkInterface* link, mavlink_message_t mes
     case MAVLINK_MSG_ID_CURRENT_MODE:
         _handleCurrentMode(message);
         break;
-#endif // DAILY_BUILD
 
         // Following are ArduPilot dialect messages
-#if !defined(NO_ARDUPILOT_DIALECT)
+#if !defined(QGC_NO_ARDUPILOT_DIALECT)
     case MAVLINK_MSG_ID_CAMERA_FEEDBACK:
         _handleCameraFeedback(message);
         break;
@@ -656,7 +654,7 @@ void Vehicle::_mavlinkMessageReceived(LinkInterface* link, mavlink_message_t mes
     emit mavlinkMessageReceived(message);
 }
 
-#if !defined(NO_ARDUPILOT_DIALECT)
+#if !defined(QGC_NO_ARDUPILOT_DIALECT)
 void Vehicle::_handleCameraFeedback(const mavlink_message_t& message)
 {
     mavlink_camera_feedback_t feedback;
@@ -2365,6 +2363,7 @@ void Vehicle::setCurrentMissionSequence(int seq)
         },
         static_cast<uint8_t>(defaultComponentId()),
         MAV_CMD_DO_SET_MISSION_CURRENT,
+        true, // showError
         static_cast<uint16_t>(seq)
     );
 }
@@ -2382,7 +2381,7 @@ void Vehicle::sendMavCommand(int compId, MAV_CMD command, bool showError, float 
 
 void Vehicle::sendMavCommandDelayed(int compId, MAV_CMD command, bool showError, int milliseconds, float param1, float param2, float param3, float param4, float param5, float param6, float param7)
 {
-    QTimer::singleShot(milliseconds, this, [=] { sendMavCommand(compId, command, showError, param1, param2, param3, param4, param5, param6, param7); });
+    QTimer::singleShot(milliseconds, this, [=, this] { sendMavCommand(compId, command, showError, param1, param2, param3, param4, param5, param6, param7); });
 }
 
 void Vehicle::sendCommand(int compId, int command, bool showError, double param1, double param2, double param3, double param4, double param5, double param6, double param7)
@@ -2433,7 +2432,8 @@ void Vehicle::sendMavCommandIntWithHandler(const MavCmdAckHandlerInfo_t* ackHand
 }
 
 typedef struct {
-    Vehicle*            vehicle;
+    Vehicle* vehicle;
+    bool showError;
     std::function<void()> unsupported_lambda;
 } _sendMavCommandWithLambdaFallbackHandlerData;
 
@@ -2452,13 +2452,17 @@ static void _sendMavCommandWithLambdaFallbackHandler(void* resultHandlerData, in
         // call the "unsupported" lambda:
         data->unsupported_lambda();
         break;
+    default:
+        if (data->showError) {
+            Vehicle::showCommandAckError(ack);
+        }
+        break;
     };
 
-out:
     delete data;
 }
 
-void Vehicle::sendMavCommandWithLambdaFallback(std::function<void()> lambda, int compId, MAV_CMD command, float param1, float param2, float param3, float param4, float param5, float param6, float param7)
+void Vehicle::sendMavCommandWithLambdaFallback(std::function<void()> lambda, int compId, MAV_CMD command, bool showError, float param1, float param2, float param3, float param4, float param5, float param6, float param7)
 {
 
     auto* instanceData = firmwarePluginInstanceData();
@@ -2473,6 +2477,7 @@ void Vehicle::sendMavCommandWithLambdaFallback(std::function<void()> lambda, int
         sendMavCommand(
             compId,
             command,
+            showError,
             param1,
             param2,
             param3,
@@ -2488,6 +2493,7 @@ void Vehicle::sendMavCommandWithLambdaFallback(std::function<void()> lambda, int
         // the command is not supported:
         auto *data = new _sendMavCommandWithLambdaFallbackHandlerData();
         data->vehicle = this;
+        data->showError = showError;
         data->unsupported_lambda = lambda;
 
         const MavCmdAckHandlerInfo_t handlerInfo {
@@ -2744,6 +2750,29 @@ void Vehicle::_sendMavCommandResponseTimeoutCheck(void)
     }
 }
 
+void Vehicle::showCommandAckError(const mavlink_command_ack_t& ack)
+{
+    QString rawCommandName  = MissionCommandTree::instance()->rawName(static_cast<MAV_CMD>(ack.command));
+
+    switch (ack.result) {
+        case MAV_RESULT_TEMPORARILY_REJECTED:
+            qgcApp()->showAppMessage(tr("%1 command temporarily rejected").arg(rawCommandName));
+            break;
+        case MAV_RESULT_DENIED:
+            qgcApp()->showAppMessage(tr("%1 command denied").arg(rawCommandName));
+            break;
+        case MAV_RESULT_UNSUPPORTED:
+            qgcApp()->showAppMessage(tr("%1 command not supported").arg(rawCommandName));
+            break;
+        case MAV_RESULT_FAILED:
+            qgcApp()->showAppMessage(tr("%1 command failed").arg(rawCommandName));
+            break;
+        default:
+            // Do nothing
+            break;
+        }
+}
+
 void Vehicle::_handleCommandAck(mavlink_message_t& message)
 {
     mavlink_command_ack_t ack;
@@ -2771,7 +2800,7 @@ void Vehicle::_handleCommandAck(mavlink_message_t& message)
         emit sensorsParametersResetAck(result);
     }
 
-#if !defined(NO_ARDUPILOT_DIALECT)
+#if !defined(QGC_NO_ARDUPILOT_DIALECT)
     if (ack.command == MAV_CMD_FLASH_BOOTLOADER && ack.result == MAV_RESULT_ACCEPTED) {
         qgcApp()->showAppMessage(tr("Bootloader flash succeeded"));
     }
@@ -2802,23 +2831,7 @@ void Vehicle::_handleCommandAck(mavlink_message_t& message)
                 (*commandEntry.ackHandlerInfo.resultHandler)(commandEntry.ackHandlerInfo.resultHandlerData, message.compid, ack, MavCmdResultCommandResultOnly);
             } else {
                 if (commandEntry.showError) {
-                    switch (ack.result) {
-                    case MAV_RESULT_TEMPORARILY_REJECTED:
-                        qgcApp()->showAppMessage(tr("%1 command temporarily rejected").arg(rawCommandName));
-                        break;
-                    case MAV_RESULT_DENIED:
-                        qgcApp()->showAppMessage(tr("%1 command denied").arg(rawCommandName));
-                        break;
-                    case MAV_RESULT_UNSUPPORTED:
-                        qgcApp()->showAppMessage(tr("%1 command not supported").arg(rawCommandName));
-                        break;
-                    case MAV_RESULT_FAILED:
-                        qgcApp()->showAppMessage(tr("%1 command failed").arg(rawCommandName));
-                        break;
-                    default:
-                        // Do nothing
-                        break;
-                    }
+                    showCommandAckError(ack);
                 }
                 emit mavCommandResult(_id, message.compid, ack.command, ack.result, MavCmdResultCommandResultOnly);
             }
@@ -3634,7 +3647,7 @@ void Vehicle::_writeCsvLine()
     stream << allFactValues.join(",") << "\n";
 }
 
-#if !defined(NO_ARDUPILOT_DIALECT)
+#if !defined(QGC_NO_ARDUPILOT_DIALECT)
 void Vehicle::flashBootloader()
 {
     sendMavCommand(defaultComponentId(),

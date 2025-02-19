@@ -123,6 +123,7 @@ ApplicationWindow {
     function showPlanView() {
         flyView.visible = false
         planView.visible = true
+        viewer3DWindow.close()
     }
 
     function showFlyView() {
@@ -142,10 +143,20 @@ ApplicationWindow {
         showTool(qsTr("Analyze Tools"), "AnalyzeView.qml", "/qmlimages/Analyze.svg")
     }
 
-    function showVehicleSetupTool(setupPage = "") {
-        showTool(qsTr("Vehicle Setup"), "SetupView.qml", "/qmlimages/Gears.svg")
-        if (setupPage !== "") {
-            toolDrawerLoader.item.showNamedComponentPanel(setupPage)
+    function showVehicleConfig() {
+        showTool(qsTr("Vehicle Configuration"), "SetupView.qml", "/qmlimages/Gears.svg")
+    }
+
+    function showVehicleConfigParametersPage() {
+        showVehicleConfig()
+        toolDrawerLoader.item.showParametersPanel()
+    }
+
+    function showKnownVehicleComponentConfigPage(knownVehicleComponent) {
+        showVehicleConfig()
+        let vehicleComponent = globals.activeVehicle.autopilotPlugin.findKnownVehicleComponent(knownVehicleComponent)
+        if (vehicleComponent) {
+            toolDrawerLoader.item.showVehicleComponentPanel(vehicleComponent)
         }
     }
 
@@ -159,8 +170,8 @@ ApplicationWindow {
     //-------------------------------------------------------------------------
     //-- Global simple message dialog
 
-    function showMessageDialog(dialogTitle, dialogText, buttons = Dialog.Ok, acceptFunction = null) {
-        simpleMessageDialogComponent.createObject(mainWindow, { title: dialogTitle, text: dialogText, buttons: buttons, acceptFunction: acceptFunction }).open()
+    function showMessageDialog(dialogTitle, dialogText, buttons = Dialog.Ok, acceptFunction = null, closeFunction = null) {
+        simpleMessageDialogComponent.createObject(mainWindow, { title: dialogTitle, text: dialogText, buttons: buttons, acceptFunction: acceptFunction, closeFunction: closeFunction }).open()
     }
 
     // This variant is only meant to be called by QGCApplication
@@ -306,15 +317,14 @@ ApplicationWindow {
                         spacing:        ScreenTools.defaultFontPixelWidth
 
                         SubMenuButton {
-                            id:                 setupButton
                             height:             toolSelectDialog._toolButtonHeight
                             Layout.fillWidth:   true
-                            text:               qsTr("Vehicle Setup")
-                            imageResource:      "/qmlimages/Gears.svg"
+                            text:               qsTr("Plan Flight")
+                            imageResource:      "/qmlimages/Plan.svg"
                             onClicked: {
                                 if (mainWindow.allowViewSwitch()) {
                                     mainWindow.closeIndicatorDrawer()
-                                    mainWindow.showVehicleSetupTool()
+                                    mainWindow.showPlanView()
                                 }
                             }
                         }
@@ -330,6 +340,20 @@ ApplicationWindow {
                                 if (mainWindow.allowViewSwitch()) {
                                     mainWindow.closeIndicatorDrawer()
                                     mainWindow.showAnalyzeTool()
+                                }
+                            }
+                        }
+
+                        SubMenuButton {
+                            id:                 setupButton
+                            height:             toolSelectDialog._toolButtonHeight
+                            Layout.fillWidth:   true
+                            text:               qsTr("Vehicle Configuration")
+                            imageResource:      "/qmlimages/Gears.svg"
+                            onClicked: {
+                                if (mainWindow.allowViewSwitch()) {
+                                    mainWindow.closeIndicatorDrawer()
+                                    mainWindow.showVehicleConfig()
                                 }
                             }
                         }
@@ -468,10 +492,10 @@ ApplicationWindow {
         interactive:    false
         visible:        false
 
-        property alias backIcon:    backIcon.source
-        property alias toolTitle:   toolbarDrawerText.text
+        property var backIcon
+        property string toolTitle
         property alias toolSource:  toolDrawerLoader.source
-        property alias toolIcon:    toolIcon.source
+        property var toolIcon
 
         // Unload the loader only after closed, otherwise we will see a "blank" loader in the meantime
         onClosed: {
@@ -487,51 +511,27 @@ ApplicationWindow {
             color:          qgcPal.toolbarBackground
 
             RowLayout {
+                id:                 toolDrawerToolbarLayout
                 anchors.leftMargin: ScreenTools.defaultFontPixelWidth
                 anchors.left:       parent.left
                 anchors.top:        parent.top
                 anchors.bottom:     parent.bottom
                 spacing:            ScreenTools.defaultFontPixelWidth
 
-                QGCColoredImage {
-                    id:                     backIcon
-                    width:                  ScreenTools.defaultFontPixelHeight * 2
-                    height:                 ScreenTools.defaultFontPixelHeight * 2
-                    fillMode:               Image.PreserveAspectFit
-                    mipmap:                 true
-                    color:                  qgcPal.text
-                }
-
-                QGCLabel {
-                    id:     backTextLabel
-                    text:   qsTr("Back")
-                }
-
                 QGCLabel {
                     font.pointSize: ScreenTools.largeFontPointSize
                     text:           "<"
                 }
 
-                QGCColoredImage {
-                    id:                     toolIcon
-                    width:                  ScreenTools.defaultFontPixelHeight * 2
-                    height:                 ScreenTools.defaultFontPixelHeight * 2
-                    fillMode:               Image.PreserveAspectFit
-                    mipmap:                 true
-                    color:                  qgcPal.text
-                }
-
                 QGCLabel {
                     id:             toolbarDrawerText
+                    text:           qsTr("Exit") + " " + toolDrawer.toolTitle
                     font.pointSize: ScreenTools.largeFontPointSize
                 }
             }
 
             QGCMouseArea {
-                anchors.top:        parent.top
-                anchors.bottom:     parent.bottom
-                x:                  parent.mapFromItem(backIcon, backIcon.x, backIcon.y).x
-                width:              (backTextLabel.x + backTextLabel.width) - backIcon.x
+                anchors.fill: toolDrawerToolbarLayout
                 onClicked: {
                     if (mainWindow.allowViewSwitch()) {
                         toolDrawer.visible = false
@@ -686,6 +686,7 @@ ApplicationWindow {
         modal:          true
         focus:          true
         closePolicy:    Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        dim:            false
 
         property var sourceComponent
         property var indicatorItem
@@ -724,7 +725,7 @@ ApplicationWindow {
             Rectangle {
                 anchors.horizontalCenter:   backgroundRect.right
                 anchors.verticalCenter:     backgroundRect.top
-                width:                      ScreenTools.defaultFontPixelHeight
+                width:                      ScreenTools.largeFontPixelHeight
                 height:                     width
                 radius:                     width / 2
                 color:                      QGroundControl.globalPalette.button

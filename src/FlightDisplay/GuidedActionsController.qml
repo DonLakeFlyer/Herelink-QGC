@@ -28,14 +28,15 @@ Item {
 
     property var missionController
     property var confirmDialog
-    property var actionList
     property var guidedValueSlider
     property var orbitMapCircle
 
     readonly property string emergencyStopTitle:            qsTr("EMERGENCY STOP")
     readonly property string armTitle:                      qsTr("Arm")
+    readonly property string mvArmTitle:                    qsTr("Arm (MV)")
     readonly property string forceArmTitle:                 qsTr("Force Arm")
     readonly property string disarmTitle:                   qsTr("Disarm")
+    readonly property string mvDisarmTitle:                 qsTr("Disarm (MV)")
     readonly property string rtlTitle:                      qsTr("Return")
     readonly property string takeoffTitle:                  qsTr("Takeoff")
     readonly property string gripperTitle:                  qsTr("Gripper Function")
@@ -56,18 +57,20 @@ Item {
     readonly property string vtolTransitionTitle:           qsTr("VTOL Transition")
     readonly property string roiTitle:                      qsTr("ROI")
     readonly property string setHomeTitle:                  qsTr("Set Home")
-    readonly property string actionListTitle:               qsTr("Action")
     readonly property string setEstimatorOriginTitle:       qsTr("Set Estimator origin")
     readonly property string setFlightMode:                 qsTr("Set Flight Mode")
     readonly property string changeHeadingTitle:            qsTr("Change Heading")
 
     readonly property string armMessage:                        qsTr("Arm the vehicle.")
+    readonly property string mvArmMessage:                      qsTr("Arm selected vehicles.")
     readonly property string forceArmMessage:                   qsTr("WARNING: This will force arming of the vehicle bypassing any safety checks.")
     readonly property string disarmMessage:                     qsTr("Disarm the vehicle")
+    readonly property string mvDisarmMessage:                   qsTr("Disarm selected vehicles.")
     readonly property string emergencyStopMessage:              qsTr("WARNING: THIS WILL STOP ALL MOTORS. IF VEHICLE IS CURRENTLY IN THE AIR IT WILL CRASH.")
     readonly property string takeoffMessage:                    qsTr("Takeoff from ground and hold position.")
-    readonly property string gripperMessage:                       qsTr("Grab or Release the cargo")
+    readonly property string gripperMessage:                    qsTr("Grab or Release the cargo")
     readonly property string startMissionMessage:               qsTr("Takeoff from ground and start the current mission.")
+    readonly property string mvStartMissionMessage:             qsTr("Takeoff from ground and start the current mission for selected vehicles.")
     readonly property string continueMissionMessage:            qsTr("Continue the mission from the current waypoint.")
     readonly property string resumeMissionUploadFailMessage:    qsTr("Upload of resume mission failed. Confirm to retry upload")
     readonly property string landMessage:                       qsTr("Land the vehicle at the current position.")
@@ -80,7 +83,7 @@ Item {
     readonly property string orbitMessage:                      qsTr("Orbit the vehicle around the specified location.")
     readonly property string landAbortMessage:                  qsTr("Abort the landing sequence.")
     readonly property string pauseMessage:                      qsTr("Pause the vehicle at it's current position, adjusting altitude up or down as needed.")
-    readonly property string mvPauseMessage:                    qsTr("Pause all vehicles at their current position.")
+    readonly property string mvPauseMessage:                    qsTr("Pause selected vehicles at their current position.")
     readonly property string vtolTransitionFwdMessage:          qsTr("Transition VTOL to fixed wing flight.")
     readonly property string vtolTransitionMRMessage:           qsTr("Transition VTOL to multi-rotor flight.")
     readonly property string roiMessage:                        qsTr("Make the specified location a Region Of Interest.")
@@ -111,7 +114,6 @@ Item {
     readonly property int actionVtolTransitionToFwdFlight:  20
     readonly property int actionVtolTransitionToMRFlight:   21
     readonly property int actionROI:                        22
-    readonly property int actionActionList:                 23
     readonly property int actionForceArm:                   24
     readonly property int actionChangeSpeed:                25
     readonly property int actionGripper:                    26
@@ -119,6 +121,10 @@ Item {
     readonly property int actionSetEstimatorOrigin:         28
     readonly property int actionSetFlightMode:              29
     readonly property int actionChangeHeading:              30
+    readonly property int actionMVArm:                      31
+    readonly property int actionMVDisarm:                   32
+
+
 
     readonly property int customActionStart:                10000 // Custom actions ids should start here so that they don't collide with the built in actions
 
@@ -150,7 +156,6 @@ Item {
     property bool showLandAbort:            _guidedActionsEnabled && _vehicleFlying && _fixedWingOnApproach
     property bool showGotoLocation:         _guidedActionsEnabled && _vehicleFlying
     property bool showSetHome:              _guidedActionsEnabled
-    property bool showActionList:           _guidedActionsEnabled && (showStartMission || showResumeMission || showChangeAlt || showLandAbort || actionList.hasCustomActions)
     property bool showGripper:              _initialConnectComplete ? _activeVehicle.hasGripper : false
     property bool showSetEstimatorOrigin:   _activeVehicle && !(_activeVehicle.sensorsPresentBits & Vehicle.SysStatusSensorGPS)
     property bool showChangeHeading:        _guidedActionsEnabled && _vehicleFlying
@@ -161,7 +166,7 @@ Item {
     // Note: The '_missionItemCount - 2' is a hack to not trigger resume mission when a mission ends with an RTL item
     property bool showResumeMission:    _activeVehicle && !_vehicleArmed && _vehicleWasFlying && _missionAvailable && _resumeMissionIndex > 0 && (_resumeMissionIndex < _missionItemCount - 2)
 
-    property bool guidedUIVisible:      confirmDialog.visible || actionList.visible
+    property bool guidedUIVisible:          confirmDialog.visible
 
     property var    _corePlugin:            QGroundControl.corePlugin
     property var    _corePluginOptions:     QGroundControl.corePlugin.options
@@ -390,9 +395,8 @@ Item {
     }
 
     function closeAll() {
-        confirmDialog.visible =     false
-        actionList.visible =        false
-        guidedValueSlider.visible =    false
+        confirmDialog.visible = false
+        guidedValueSlider.visible = false
     }
 
     // Called when an action is about to be executed in order to confirm
@@ -417,6 +421,11 @@ Item {
             confirmDialog.message = armMessage
             confirmDialog.hideTrigger = Qt.binding(function() { return !showArm })
             break;
+        case actionMVArm:
+            confirmDialog.title = mvArmTitle
+            confirmDialog.message = mvArmMessage
+            confirmDialog.hideTrigger = true
+            break;
         case actionForceArm:
             confirmDialog.title = forceArmTitle
             confirmDialog.message = forceArmMessage
@@ -429,6 +438,11 @@ Item {
             confirmDialog.title = disarmTitle
             confirmDialog.message = disarmMessage
             confirmDialog.hideTrigger = Qt.binding(function() { return !showDisarm })
+            break;
+        case actionMVDisarm:
+            confirmDialog.title = mvDisarmTitle
+            confirmDialog.message = mvDisarmMessage
+            confirmDialog.hideTrigger = true
             break;
         case actionEmergencyStop:
             confirmDialog.title = emergencyStopTitle
@@ -449,7 +463,7 @@ Item {
             break;
         case actionMVStartMission:
             confirmDialog.title = mvStartMissionTitle
-            confirmDialog.message = startMissionMessage
+            confirmDialog.message = mvStartMissionMessage
             confirmDialog.hideTrigger = true
             break;
         case actionContinueMission:
@@ -532,9 +546,6 @@ Item {
             confirmDialog.message = roiMessage
             confirmDialog.hideTrigger = Qt.binding(function() { return !showROI })
             break;
-        case actionActionList:
-            actionList.show()
-            return
         case actionChangeSpeed:
             confirmDialog.hideTrigger = true
             confirmDialog.title = changeSpeedTitle
@@ -576,7 +587,7 @@ Item {
     // Executes the specified action
     function executeAction(actionCode, actionData, sliderOutputValue, optionChecked) {
         var i;
-        var rgVehicle;
+        var selectedVehicles;
         switch (actionCode) {
         case actionRTL:
             _activeVehicle.guidedModeRTL(optionChecked)
@@ -597,19 +608,34 @@ Item {
             _activeVehicle.startMission()
             break
         case actionMVStartMission:
-            rgVehicle = QGroundControl.multiVehicleManager.vehicles
-            for (i = 0; i < rgVehicle.count; i++) {
-                rgVehicle.get(i).startMission()
+            selectedVehicles = QGroundControl.multiVehicleManager.selectedVehicles
+            for (i = 0; i < selectedVehicles.count; i++) {
+                var vehicle = selectedVehicles.get(i)
+                if (vehicle.armed === true){
+                    vehicle.startMission()
+                }
             }
             break
         case actionArm:
             _activeVehicle.armed = true
+            break
+        case actionMVArm:
+            selectedVehicles = QGroundControl.multiVehicleManager.selectedVehicles
+            for (i = 0; i < selectedVehicles.count; i++) {
+                selectedVehicles.get(i).armed = true
+            }
             break
         case actionForceArm:
             _activeVehicle.forceArm()
             break
         case actionDisarm:
             _activeVehicle.armed = false
+            break
+        case actionMVDisarm:
+            selectedVehicles = QGroundControl.multiVehicleManager.selectedVehicles
+            for (i = 0; i < selectedVehicles.count; i++) {
+                selectedVehicles.get(i).armed = false
+            }
             break
         case actionEmergencyStop:
             _activeVehicle.emergencyStop()
@@ -638,9 +664,9 @@ Item {
             _activeVehicle.guidedModeChangeAltitude(altitudeChangeInMeters, true /* pauseVehicle */)
             break
         case actionMVPause:
-            rgVehicle = QGroundControl.multiVehicleManager.vehicles
-            for (i = 0; i < rgVehicle.count; i++) {
-                rgVehicle.get(i).pauseVehicle()
+            selectedVehicles = QGroundControl.multiVehicleManager.selectedVehicles
+            for (i = 0; i < selectedVehicles.count; i++) {
+                selectedVehicles.get(i).pauseVehicle()
             }
             break
         case actionVtolTransitionToFwdFlight:

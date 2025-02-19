@@ -93,7 +93,7 @@ DECLARE_SETTINGGROUP(App, "")
 
     SettingsFact* savePathFact = qobject_cast<SettingsFact*>(savePath());
     QString appName = QCoreApplication::applicationName();
-#ifdef __mobile__
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
     // Mobile builds always use the runtime generated location for savePath.
     bool userHasModifiedSavePath = false;
 #else
@@ -101,7 +101,7 @@ DECLARE_SETTINGGROUP(App, "")
 #endif
 
     if (!userHasModifiedSavePath) {
-#ifdef __mobile__
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
     #ifdef Q_OS_IOS
         // This will expose the directories directly to the File iOs app
         QDir rootDir = QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
@@ -157,6 +157,7 @@ DECLARE_SETTINGSFACT(AppSettings, savePath)
 DECLARE_SETTINGSFACT(AppSettings, androidSaveToSDCard)
 DECLARE_SETTINGSFACT(AppSettings, useChecklist)
 DECLARE_SETTINGSFACT(AppSettings, enforceChecklist)
+DECLARE_SETTINGSFACT(AppSettings, enableMultiVehiclePanel)
 DECLARE_SETTINGSFACT(AppSettings, mapboxToken)
 DECLARE_SETTINGSFACT(AppSettings, mapboxAccount)
 DECLARE_SETTINGSFACT(AppSettings, mapboxStyle)
@@ -210,7 +211,7 @@ DECLARE_SETTINGSFACT_NO_FUNC(AppSettings, qLocaleLanguage)
                 rgEnumValues.append(languageInfo.languageId);
             }
         }
-#ifdef DAILY_BUILD
+#ifdef QGC_DAILY_BUILD
         // Only daily builds include full set of languages for testing purposes
         for (const auto& languageInfo: _rgLanguageInfo) {
             if (!_rgReleaseLanguages.contains(languageInfo.languageId) && !_rgPartialLanguages.contains(languageInfo.languageId)) {
@@ -256,7 +257,7 @@ void AppSettings::_checkSavePathDirectories(void)
         savePathDir.mkdir(videoDirectory);
         savePathDir.mkdir(photoDirectory);
         savePathDir.mkdir(crashDirectory);
-        savePathDir.mkdir(customActionsDirectory);
+        savePathDir.mkdir(mavlinkActionsDirectory);
     }
 }
 
@@ -340,12 +341,12 @@ QString AppSettings::crashSavePath(void)
     return QString();
 }
 
-QString AppSettings::customActionsSavePath(void)
+QString AppSettings::mavlinkActionsSavePath(void)
 {
     QString path = savePath()->rawValue().toString();
     if (!path.isEmpty() && QDir(path).exists()) {
         QDir dir(path);
-        return dir.filePath(customActionsDirectory);
+        return dir.filePath(mavlinkActionsDirectory);
     }
     return QString();
 }

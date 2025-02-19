@@ -10,9 +10,9 @@
 #include "MotorComponent.h"
 #include "AutoPilotPlugin.h"
 
-MotorComponent::MotorComponent(Vehicle* vehicle, AutoPilotPlugin* autopilot, QObject* parent) :
-    VehicleComponent(vehicle, autopilot, parent),
-    _name(tr("Motors"))
+MotorComponent::MotorComponent(Vehicle* vehicle, AutoPilotPlugin* autopilot, QObject* parent)
+    : VehicleComponent(vehicle, autopilot, AutoPilotPlugin::UnknownVehicleComponent, parent)
+    , _name(tr("Motors"))
 {
 
 }
@@ -49,7 +49,7 @@ QStringList MotorComponent::setupCompleteChangedTriggerList(void) const
 
 QUrl MotorComponent::setupSource(void) const
 {
-    return QUrl::fromUserInput(QStringLiteral("qrc:/qml/MotorComponent.qml"));
+    return QUrl::fromUserInput(QStringLiteral("qrc:/qml/QGroundControl/Controls/MotorComponent.qml"));
 }
 
 QUrl MotorComponent::summaryQmlSource(void) const
