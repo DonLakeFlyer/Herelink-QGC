@@ -65,6 +65,10 @@ jobs:
               -DQT_ANDROID_BUILD_ALL_ABIS=OFF
               -DQT_HOST_PATH="${{ env.QT_ROOT_DIR }}/../gcc_64"
               -DQT_ANDROID_SIGN_APK='ON'
+              -DQT_ANDROID_KEYSTORE_PATH="${{ github.workspace }}/deploy/android/debug.keystore"
+              -DQT_ANDROID_KEYSTORE_ALIAS=androiddebugkey
+              -DQT_ANDROID_KEYSTORE_STORE_PASS=android
+              -DQT_ANDROID_KEYSTORE_KEY_PASS=android
               -DQT_DEBUG_FIND_PACKAGE=ON
               -DQGC_STABLE_BUILD=${{ github.ref_type == 'tag' || contains(github.ref, 'Stable') && 'ON' || 'OFF' }}
 
