@@ -14,6 +14,7 @@
 
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QMap>
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
 #include <QtCore/QVariantList>
@@ -22,6 +23,7 @@ Q_DECLARE_LOGGING_CATEGORY(CameraManagerLog)
 
 class Joystick;
 class SimulatedCameraControl;
+class QGCVideoStreamInfo;
 class Vehicle;
 class CameraMetaData;
 class QGCCameraManagerTest;

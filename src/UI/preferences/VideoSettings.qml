@@ -32,8 +32,8 @@ SettingsPage {
     property bool   _isMPEGTS:                  _isStreamSource && (_videoSource === _videoSettings.mpegtsVideoSource)
     property bool   _videoAutoStreamConfig:     _videoManager.autoStreamConfigured
     property bool   _videoSourceDisabled:       _videoSource === _videoSettings.disabledVideoSource
-    property real   _urlFieldWidth:             ScreenTools.defaultFontPixelWidth * 25
-    property bool   _requiresUDPPort:           _isUDP264 || _isUDP265 || _isMPEGTS
+    property real   _urlFieldWidth:             ScreenTools.defaultFontPixelWidth * 40
+    property bool   _requiresUDPUrl:            _isUDP264 || _isUDP265 || _isMPEGTS
 
     SettingsGroupLayout {
         Layout.fillWidth:   true
@@ -53,7 +53,7 @@ SettingsPage {
     SettingsGroupLayout {
         Layout.fillWidth:   true
         heading:            qsTr("Connection")
-        visible:            !_videoSourceDisabled && !_videoAutoStreamConfig && (_isTCP || _isRTSP | _requiresUDPPort)
+        visible:            !_videoSourceDisabled && !_videoAutoStreamConfig && (_isTCP || _isRTSP | _requiresUDPUrl)
 
         LabelledFactTextField {
             Layout.fillWidth:           true
@@ -72,10 +72,11 @@ SettingsPage {
         }
 
         LabelledFactTextField {
-            Layout.fillWidth:   true
-            label:              qsTr("UDP Port")
-            fact:               _videoSettings.udpPort
-            visible:            _requiresUDPPort && _videoSettings.udpPort.visible
+            Layout.fillWidth:           true
+            textFieldPreferredWidth:    _urlFieldWidth
+            label:                      qsTr("UDP URL")
+            fact:                       _videoSettings.udpUrl
+            visible:                    _requiresUDPUrl && _videoSettings.udpUrl.visible
         }
     }
 

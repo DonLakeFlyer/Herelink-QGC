@@ -1,7 +1,5 @@
-find_package(Qt6 REQUIRED COMPONENTS Core Positioning Test)
-
-qt_add_library(qgcunittest
-    STATIC
+target_sources(${CMAKE_PROJECT_NAME}
+    PRIVATE
         MultiSignalSpy.cc
         MultiSignalSpy.h
         MultiSignalSpyV2.cc
@@ -10,19 +8,4 @@ qt_add_library(qgcunittest
         UnitTest.h
 )
 
-target_link_libraries(qgcunittest
-    PRIVATE
-        FactSystem
-        MissionManager
-        Settings
-        Vehicle
-        VehicleComponents
-    PUBLIC
-        Qt6::Core
-        Qt6::Positioning
-        Qt6::Test
-        MAVLink
-        MockLink
-)
-
-target_include_directories(qgcunittest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

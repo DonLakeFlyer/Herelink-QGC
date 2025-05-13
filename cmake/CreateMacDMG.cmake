@@ -1,48 +1,18 @@
-message(STATUS "Creating Mac Bundle")
 
-set(TARGET_NAME QGroundControl)
-set(SYSTEM_FRAMEWORK_PATH /Library/Frameworks)
-set(BUNDLE_FRAMEWORK_PATH staging/${TARGET_NAME}.app/Contents/Frameworks)
+set(STAGING_BUNDLE_PATH ${CMAKE_BINARY_DIR}/staging/${TARGET_APP_NAME}.app)
 
-message(STATUS "Copy GStreamer framework into bundle")
-file(COPY ${SYSTEM_FRAMEWORK_PATH}/GStreamer.framework DESTINATION ${BUNDLE_FRAMEWORK_PATH})
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/bin)
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/etc)
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/share)
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/Headers)
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/include)
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/Commands)
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/pkgconfig)
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/glib-2.0)
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/graphene-1.0)
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/gst-validate-launcher)
-file(GLOB REMOVE_LIB_FILES ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/*.a)
-file(REMOVE ${REMOVE_LIB_FILES})
-file(GLOB REMOVE_LIB_FILES ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/*.la)
-file(REMOVE ${REMOVE_LIB_FILES})
-file(GLOB REMOVE_LIB_FILES ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/gstreamer-1.0/*.a)
-file(REMOVE ${REMOVE_LIB_FILES})
-file(GLOB REMOVE_LIB_FILES ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/gstreamer-1.0/*.la)
-file(REMOVE ${REMOVE_LIB_FILES})
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/gstreamer-1.0/include)
-file(REMOVE_RECURSE ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/gstreamer-1.0/pkgconfig)
+message(STATUS "Signing bundle: ${STAGING_BUNDLE_PATH}")
+execute_process(
+    COMMAND codesign --force --deep -s - "${STAGING_BUNDLE_PATH}"
+    COMMAND_ERROR_IS_FATAL ANY
+)
 
-# Fix up library paths to point into bundle
-execute_process(COMMAND ln -sf ${BUNDLE_FRAMEWORK_PATH} ${BUNDLE_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/libexec/Frameworks)
-execute_process(COMMAND install_name_tool -change ${SYSTEM_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/GStreamer @executable_path/../Frameworks/GStreamer.framework/Versions/1.0/lib/GStreamer staging/${TARGET_NAME}.app/Contents/MacOS/${TARGET_NAME})
+file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/package)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/package)
+file(COPY ${STAGING_BUNDLE_PATH} DESTINATION ${CMAKE_BINARY_DIR}/package)
 
-# include(BundleUtilities)
-# include(CMakePrintHelpers)
-
-# fixup_bundle("${CMAKE_BINARY_DIR}/staging/${TARGET_NAME}.app" "" "${SYSTEM_FRAMEWORK_PATH}/GStreamer.framework/Versions/1.0/lib/GStreamer")
-# verify_app("${CMAKE_BINARY_DIR}/staging/${TARGET_NAME}.app")
-# verify_bundle_prerequisites("${CMAKE_BINARY_DIR}/staging/${TARGET_NAME}.app" VERIFY_BUNDLE_PREREQS_RESULT VERIFY_BUNDLE_PREREQS_INFO)
-# cmake_print_variables(VERIFY_BUNDLE_PREREQS_RESULT VERIFY_BUNDLE_PREREQS_INFO)
-# verify_bundle_symlinks("${CMAKE_BINARY_DIR}/staging/${TARGET_NAME}.app" VERIFY_BUNDLE_SYMLINKS_RESULT VERIFY_BUNDLE_SYMLINKS_INFO)
-# cmake_print_variables(VERIFY_BUNDLE_SYMLINKS_RESULT VERIFY_BUNDLE_SYMLINKS_INFO)
-
-message(STATUS "Creating Mac DMG")
-file(REMOVE_RECURSE package)
-file(MAKE_DIRECTORY package)
-file(COPY staging/${TARGET_NAME}.app DESTINATION package)
-execute_process(COMMAND create-dmg --volname "${TARGET_NAME} Installer" "${TARGET_NAME}.dmg" "package/")
+message(STATUS "Creating DMG: ${TARGET_APP_NAME}.dmg")
+execute_process(
+    COMMAND create-dmg --volname "${TARGET_APP_NAME}" --filesystem "APFS" "${TARGET_APP_NAME}.dmg" "${CMAKE_BINARY_DIR}/package/"
+    COMMAND_ERROR_IS_FATAL ANY
+)

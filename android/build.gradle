@@ -5,7 +5,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.6.1'
+        classpath 'com.android.tools.build:gradle:8.8.0'
     }
 }
 
@@ -15,7 +15,13 @@ repositories {
     maven { url 'https://jitpack.io' }
 }
 
-apply plugin: 'com.android.application'
+if (project.plugins.findPlugin("qtGradlePluginType") != null) {
+    apply plugin: qtGradlePluginType
+} else {
+    // Fall back to the default Android application plugin if qtGradlePluginType
+    // is not available
+    apply plugin: 'com.android.application'
+}
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
@@ -34,6 +40,7 @@ android {
      * - qtAndroidDir - holds the path to qt android files
      *                   needed to build any Qt application
      *                   on Android.
+     * - qtGradlePluginType - whether to build an app or a library
      *
      * are defined in gradle.properties file. This file is
      * updated by QtCreator and androiddeployqt tools.
@@ -62,6 +69,7 @@ android {
 
     tasks.withType(JavaCompile) {
         options.incremental = true
+        // options.compilerArgs += ['-Xlint:deprecation']
     }
 
     buildFeatures {
@@ -89,9 +97,6 @@ android {
         ndk.abiFilters = qtTargetAbiList.split(",")
 
         namespace "org.cubepilot.herelink_qgc"
-        // versionName "5.0"
-        // versionCode timestampInt
-
         // println "applicationId: ${applicationId}"
         println "minSdkVersion: ${minSdkVersion}"
         println "targetSdkVersion: ${targetSdkVersion}"

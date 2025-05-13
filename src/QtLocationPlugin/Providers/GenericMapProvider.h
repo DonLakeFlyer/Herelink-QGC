@@ -111,6 +111,23 @@ private:
     const QString _mapUrl = QStringLiteral("https://basemaps.linz.govt.nz/v1/tiles/aerial/EPSG:3857/%1/%2/%3.%4?api=d01ev80nqcjxddfvc6amyvkk1ka");
 };
 
+class OpenStreetMapProvider : public MapProvider
+{
+public:
+    OpenStreetMapProvider()
+        : MapProvider(
+            QStringLiteral("Street Map"),
+            QStringLiteral("https://www.openstreetmap.org"),
+            QStringLiteral("png"),
+            AVERAGE_TILE_SIZE,
+            QGeoMapType::StreetMap) {}
+
+private:
+    QString _getURL(int x, int y, int zoom) const final;
+
+    const QString _mapUrl = QStringLiteral("http://tile.openstreetmap.org/%1/%2/%3.png");
+};
+
 class StatkartMapProvider : public MapProvider
 {
 protected:
@@ -127,7 +144,7 @@ private:
     QString _getURL(int x, int y, int zoom) const final;
 
     const QString _mapTypeId;
-    const QString _mapUrl = QStringLiteral("http://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=%1&zoom=%2&x=%3&y=%4");
+    const QString _mapUrl = QStringLiteral("https://cache.kartverket.no/v1/wmts/1.0.0/topo/default/webmercator/%1/%2/%3");
 };
 
 class StatkartTopoMapProvider : public StatkartMapProvider
@@ -147,6 +164,24 @@ public:
             QStringLiteral("Statkart Basemap"),
             QStringLiteral("norgeskart_bakgrunn")) {}
 };
+
+class SvalbardMapProvider : public MapProvider
+{
+public:
+    SvalbardMapProvider()
+        : MapProvider(
+            QStringLiteral("Svalbard Topo"),
+            QStringLiteral("https://www.npolar.no/"),
+            QStringLiteral("png"),
+            AVERAGE_TILE_SIZE,
+            QGeoMapType::StreetMap) {}
+
+private:
+    QString _getURL(int x, int y, int zoom) const final;
+
+    const QString _mapUrl = QStringLiteral("https://geodata.npolar.no/arcgis/rest/services/Basisdata/NP_Basiskart_Svalbard_WMTS_3857/MapServer/WMTS/tile/1.0.0/Basisdata_NP_Basiskart_Svalbard_WMTS_3857/default/default028mm/%1/%2/%3");
+};
+
 
 class EniroMapProvider : public MapProvider
 {

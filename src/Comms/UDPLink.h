@@ -82,11 +82,12 @@ public:
     Q_INVOKABLE void removeHost(const QString &host, quint16 port);
 
     LinkType type() const override { return LinkConfiguration::TypeUdp; }
+    void setAutoConnect(bool autoc = true) override;
     void copyFrom(const LinkConfiguration *source) override;
     void loadSettings(QSettings &settings, const QString &root) override;
-    void saveSettings(QSettings &settings, const QString &root) override;
-    QString settingsURL() override { return QStringLiteral("UdpSettings.qml"); }
-    QString settingsTitle() override { return tr("UDP Link Settings"); }
+    void saveSettings(QSettings &settings, const QString &root) const override;
+    QString settingsURL() const override { return QStringLiteral("UdpSettings.qml"); }
+    QString settingsTitle() const override { return tr("UDP Link Settings"); }
 
     QStringList hostList() const { return _hostList; }
     QList<std::shared_ptr<UDPClient>> targetHosts() const { return _targetHosts; }
@@ -171,7 +172,10 @@ public:
 
     bool isConnected() const override;
     void disconnect() override;
-    bool isSecureConnection() override;
+    bool isSecureConnection() const override;
+
+protected:
+    bool _connect() override;
 
 private slots:
     void _writeBytes(const QByteArray &data) override;
@@ -182,8 +186,6 @@ private slots:
     void _onDataSent(const QByteArray &data);
 
 private:
-    bool _connect() override;
-
     const UDPConfiguration *_udpConfig = nullptr;
     UDPWorker *_worker = nullptr;
     QThread *_workerThread = nullptr;

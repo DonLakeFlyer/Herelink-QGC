@@ -23,26 +23,30 @@ import QGroundControl.Palette
 import QGroundControl.Controllers
 
 SettingsPage {
-    property var    _settingsManager:                   QGroundControl.settingsManager
-    property var    _flyViewSettings:                   _settingsManager.flyViewSettings
-    property var    _customMavlinkActionsSettings:      _settingsManager.customMavlinkActionsSettings
-    property Fact   _virtualJoystick:                   _settingsManager.appSettings.virtualJoystick
-    property Fact   _virtualJoystickAutoCenterThrottle: _settingsManager.appSettings.virtualJoystickAutoCenterThrottle
-    property Fact   _showAdditionalIndicatorsCompass:   _flyViewSettings.showAdditionalIndicatorsCompass
-    property Fact   _lockNoseUpCompass:                 _flyViewSettings.lockNoseUpCompass
-    property Fact   _guidedMinimumAltitude:             _flyViewSettings.guidedMinimumAltitude
-    property Fact   _guidedMaximumAltitude:             _flyViewSettings.guidedMaximumAltitude
-    property Fact   _maxGoToLocationDistance:           _flyViewSettings.maxGoToLocationDistance
-    property var    _viewer3DSettings:                  _settingsManager.viewer3DSettings
-    property Fact   _viewer3DEnabled:                   _viewer3DSettings.enabled
-    property Fact   _viewer3DOsmFilePath:               _viewer3DSettings.osmFilePath
-    property Fact   _viewer3DBuildingLevelHeight:       _viewer3DSettings.buildingLevelHeight
-    property Fact   _viewer3DAltitudeBias:              _viewer3DSettings.altitudeBias
+    property var    _settingsManager:                       QGroundControl.settingsManager
+    property var    _flyViewSettings:                       _settingsManager.flyViewSettings
+    property var    _mavlinkActionsSettings:                _settingsManager.mavlinkActionsSettings
+    property Fact   _virtualJoystick:                       _settingsManager.appSettings.virtualJoystick
+    property Fact   _virtualJoystickAutoCenterThrottle:     _settingsManager.appSettings.virtualJoystickAutoCenterThrottle
+    property Fact   _virtualJoystickLeftHandedMode:         _settingsManager.appSettings.virtualJoystickLeftHandedMode
+    property Fact   _enableMultiVehiclePanel:               _settingsManager.appSettings.enableMultiVehiclePanel
+    property Fact   _showAdditionalIndicatorsCompass:       _flyViewSettings.showAdditionalIndicatorsCompass
+    property Fact   _lockNoseUpCompass:                     _flyViewSettings.lockNoseUpCompass
+    property Fact   _guidedMinimumAltitude:                 _flyViewSettings.guidedMinimumAltitude
+    property Fact   _guidedMaximumAltitude:                 _flyViewSettings.guidedMaximumAltitude
+    property Fact   _maxGoToLocationDistance:               _flyViewSettings.maxGoToLocationDistance
+    property Fact   _forwardFlightGoToLocationLoiterRad:    _flyViewSettings.forwardFlightGoToLocationLoiterRad
+    property Fact   _goToLocationRequiresConfirmInGuided:   _flyViewSettings.goToLocationRequiresConfirmInGuided
+    property var    _viewer3DSettings:                      _settingsManager.viewer3DSettings
+    property Fact   _viewer3DEnabled:                       _viewer3DSettings.enabled
+    property Fact   _viewer3DOsmFilePath:                   _viewer3DSettings.osmFilePath
+    property Fact   _viewer3DBuildingLevelHeight:           _viewer3DSettings.buildingLevelHeight
+    property Fact   _viewer3DAltitudeBias:                  _viewer3DSettings.altitudeBias
 
     QGCFileDialogController { id: fileController }
 
-    function customActionList() {
-        var fileModel = fileController.getFiles(_settingsManager.appSettings.customActionsSavePath, "*.json")
+    function mavlinkActionList() {
+        var fileModel = fileController.getFiles(_settingsManager.appSettings.mavlinkActionsSavePath, "*.json")
         fileModel.unshift(qsTr("<None>"))
         return fileModel
     }
@@ -67,6 +71,13 @@ SettingsPage {
             enabled:            _settingsManager.appSettings.useChecklist.value
             visible:            useCheckList.visible && _enforceChecklist.visible
             property Fact _enforceChecklist: _settingsManager.appSettings.enforceChecklist
+        }
+
+        FactCheckBoxSlider {
+            Layout.fillWidth:   true
+            text:               qsTr("Enable Multi-Vehicle Panel")
+            fact:               _enableMultiVehiclePanel
+            visible:            _enableMultiVehiclePanel.visible
         }
 
         FactCheckBoxSlider {
@@ -106,7 +117,9 @@ SettingsPage {
     SettingsGroupLayout {
         Layout.fillWidth:   true
         heading:            qsTr("Guided Commands")
-        visible:            _guidedMinimumAltitude.visible || _guidedMaximumAltitude.visible || _maxGoToLocationDistance.visible
+        visible:            _guidedMinimumAltitude.visible || _guidedMaximumAltitude.visible ||
+                            _maxGoToLocationDistance.visible || _forwardFlightGoToLocationLoiterRad.visible ||
+                            _goToLocationRequiresConfirmInGuided.visible
 
         LabelledFactTextField {
             Layout.fillWidth:   true
@@ -128,34 +141,50 @@ SettingsPage {
             fact:               _maxGoToLocationDistance
             visible:            fact.visible
         }
+
+        LabelledFactTextField {
+            Layout.fillWidth:   true
+            label:              qsTr("Loiter Radius in Forward Flight Guided Mode")
+            fact:               _forwardFlightGoToLocationLoiterRad
+            visible:            fact.visible
+        }
+
+        FactCheckBoxSlider {
+            Layout.fillWidth:   true
+            text:               qsTr("Require Confirmation for Go To Location in Guided Mode")
+            fact:               _goToLocationRequiresConfirmInGuided
+            visible:            fact.visible
+        }
     }
 
     SettingsGroupLayout {
         Layout.fillWidth:       true
         Layout.preferredWidth:  ScreenTools.defaultFontPixelWidth * 35
-        heading:                qsTr("Custom MAVLink Actions")
-        headingDescription:     qsTr("Custom action JSON files should be created in the '%1' folder.").arg(QGroundControl.settingsManager.appSettings.customActionsSavePath)
+        heading:                qsTr("MAVLink Actions")
+        headingDescription:     qsTr("Action JSON files should be created in the '%1' folder.").arg(QGroundControl.settingsManager.appSettings.mavlinkActionsSavePath)
 
         LabelledComboBox {
             Layout.fillWidth:   true
-            label:              qsTr("Fly View Custom Actions")
-            model:              customActionList()
-            onActivated:        (index) => index == 0 ? _customMavlinkActionsSettings.flyViewActionsFile.rawValue = "" : _customMavlinkActionsSettings.flyViewActionsFile.rawValue = comboBox.currentText
+            label:              qsTr("Fly View Actions")
+            model:              mavlinkActionList()
+            onActivated:        (index) => index == 0 ? _mavlinkActionsSettings.flyViewActionsFile.rawValue = "" : _mavlinkActionsSettings.flyViewActionsFile.rawValue = comboBox.currentText
+            enabled:            model.length > 1
 
             Component.onCompleted: {
-                var index = comboBox.find(_customMavlinkActionsSettings.flyViewActionsFile.valueString)
+                var index = comboBox.find(_mavlinkActionsSettings.flyViewActionsFile.valueString)
                 comboBox.currentIndex = index == -1 ? 0 : index
             }
         }
 
         LabelledComboBox {
             Layout.fillWidth:   true
-            label:              qsTr("Joystick Custom Actions")
-            model:              customActionList()
-            onActivated:        (index) => index == 0 ? _customMavlinkActionsSettings.joystickActionsFile.rawValue = "" : _customMavlinkActionsSettings.joystickActionsFile.rawValue = comboBox.currentText
+            label:              qsTr("Joystick Actions")
+            model:              mavlinkActionList()
+            onActivated:        (index) => index == 0 ? _mavlinkActionsSettings.joystickActionsFile.rawValue = "" : _mavlinkActionsSettings.joystickActionsFile.rawValue = comboBox.currentText
+            enabled:            model.length > 1
 
             Component.onCompleted: {
-                var index = comboBox.find(_customMavlinkActionsSettings.joystickActionsFile.valueString)
+                var index = comboBox.find(_mavlinkActionsSettings.joystickActionsFile.valueString)
                 comboBox.currentIndex = index == -1 ? 0 : index
             }
         }
@@ -164,7 +193,7 @@ SettingsPage {
     SettingsGroupLayout {
         Layout.fillWidth:   true
         heading:            qsTr("Virtual Joystick")
-        visible:            _virtualJoystick.visible || _virtualJoystickAutoCenterThrottle.visible
+        visible:            _virtualJoystick.visible || _virtualJoystickAutoCenterThrottle.visible || _virtualJoystickLeftHandedMode.visible
 
         FactCheckBoxSlider {
             Layout.fillWidth:   true
@@ -179,6 +208,14 @@ SettingsPage {
             visible:            _virtualJoystickAutoCenterThrottle.visible
             enabled:            _virtualJoystick.rawValue
             fact:               _virtualJoystickAutoCenterThrottle
+        }
+
+        FactCheckBoxSlider {
+            Layout.fillWidth:   true
+            text:               qsTr("Left-Handed Mode (swap sticks)")
+            visible:            _virtualJoystickLeftHandedMode.visible
+            enabled:            _virtualJoystick.rawValue
+            fact:               _virtualJoystickLeftHandedMode
         }
     }
 

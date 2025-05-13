@@ -138,8 +138,11 @@ Item {
             Layout.fillHeight:  true
             contentWidth:       sliderContainer.width
             contentHeight:      sliderContainer.height
-            flickDeceleration:  0.5
             flickableDirection: Flickable.VerticalFlick
+
+            // The default deceleration is too fast for the slider. We need to slow it down a bit. This allows for large movements of the slider
+            // to set large altitudes.
+            Component.onCompleted: flickDeceleration = flickDeceleration / 2
 
             PropertyAnimation on contentY {
                 id:             flickableAnimation
@@ -278,6 +281,7 @@ Item {
             showUnits:          true
             unitsLabel:         valueLabel.unitsString
             visible:            false
+            numericValuesOnly:  true
 
             onEditingFinished: {
                 visible = false

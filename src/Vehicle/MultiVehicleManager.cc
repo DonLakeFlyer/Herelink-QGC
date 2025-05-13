@@ -12,6 +12,7 @@
 #include "QGCApplication.h"
 #include "ParameterManager.h"
 #include "SettingsManager.h"
+#include "MavlinkSettings.h"
 #include "FirmwareUpgradeSettings.h"
 #include "QGCCorePlugin.h"
 #include "QGCOptions.h"
@@ -24,8 +25,10 @@
 #include "VehicleObjectAvoidance.h"
 #include "TrajectoryPoints.h"
 #include "QmlObjectListModel.h"
-#if defined (Q_OS_IOS) || defined(Q_OS_ANDROID)
+#ifdef Q_OS_IOS
 #include "MobileScreenMgr.h"
+#elif defined(Q_OS_ANDROID)
+#include "AndroidInterface.h"
 #endif
 #include "QGCLoggingCategory.h"
 
@@ -40,8 +43,8 @@ Q_APPLICATION_STATIC(MultiVehicleManager, _multiVehicleManagerInstance);
 MultiVehicleManager::MultiVehicleManager(QObject *parent)
     : QObject(parent)
     , _gcsHeartbeatTimer(new QTimer(this))
-    , _offlineEditingVehicle(new Vehicle(Vehicle::MAV_AUTOPILOT_TRACK, Vehicle::MAV_TYPE_TRACK, this))
     , _vehicles(new QmlObjectListModel(this))
+    , _selectedVehicles(new QmlObjectListModel(this))
 {
     // qCDebug(MultiVehicleManagerLog) << Q_FUNC_INFO << this;
 }
@@ -74,17 +77,14 @@ void MultiVehicleManager::init()
         return;
     }
 
+    _offlineEditingVehicle = new Vehicle(Vehicle::MAV_AUTOPILOT_TRACK, Vehicle::MAV_TYPE_TRACK, this);
+
     (void) connect(MAVLinkProtocol::instance(), &MAVLinkProtocol::vehicleHeartbeatInfo, this, &MultiVehicleManager::_vehicleHeartbeatInfo);
 
     _gcsHeartbeatTimer->setInterval(kGCSHeartbeatRateMSecs);
     _gcsHeartbeatTimer->setSingleShot(false);
     (void) connect(_gcsHeartbeatTimer, &QTimer::timeout, this, &MultiVehicleManager::_sendGCSHeartbeat);
-
-    QSettings settings;
-    _gcsHeartbeatEnabled = settings.value(kGCSHeartbeatEnabledKey, true).toBool();
-    if (_gcsHeartbeatEnabled) {
-        _gcsHeartbeatTimer->start();
-    }
+    _gcsHeartbeatTimer->start();
 
     _initialized = true;
 }
@@ -102,7 +102,7 @@ void MultiVehicleManager::_vehicleHeartbeatInfo(LinkInterface* link, int vehicle
         return;
     }
 
-#ifndef NO_ARDUPILOT_DIALECT
+#ifndef QGC_NO_ARDUPILOT_DIALECT
     // When you flash a new ArduCopter it does not set a FRAME_CLASS for some reason. This is the only ArduPilot variant which
     // works this way. Because of this the vehicle type is not known at first connection. In order to make QGC work reasonably
     // we assume ArduCopter for this case.
@@ -161,10 +161,14 @@ void MultiVehicleManager::_vehicleHeartbeatInfo(LinkInterface* link, int vehicle
         setActiveVehicle(vehicle);
     }
 
-#if defined (Q_OS_IOS) || defined(Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
     if (_vehicles->count() == 1) {
-        qCDebug(MultiVehicleManagerLog) << "QAndroidJniObject::keepScreenOn";
-        MobileScreenMgr::setKeepScreenOn(true);
+        qCDebug(MultiVehicleManagerLog) << "keepScreenOn";
+        #if defined(Q_OS_ANDROID)
+            AndroidInterface::setKeepScreenOn(true);
+        #elif defined(Q_OS_IOS)
+            MobileScreenMgr::setKeepScreenOn(true);
+        #endif
     }
 #endif
 }
@@ -206,15 +210,21 @@ void MultiVehicleManager::_deleteVehiclePhase1(Vehicle *vehicle)
         qCWarning(MultiVehicleManagerLog) << "Vehicle not found in map!";
     }
 
+    deselectVehicle(vehicle->id());
+
     _setActiveVehicleAvailable(false);
     _setParameterReadyVehicleAvailable(false);
     emit vehicleRemoved(vehicle);
     vehicle->prepareDelete();
 
-#if defined (Q_OS_IOS) || defined(Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID) || defined (Q_OS_IOS)
     if (_vehicles->count() == 0) {
-        qCDebug(MultiVehicleManagerLog) << "QAndroidJniObject::restoreScreenOn";
-        MobileScreenMgr::setKeepScreenOn(false);
+        qCDebug(MultiVehicleManagerLog) << "restoreScreenOn";
+        #if defined(Q_OS_ANDROID)
+            AndroidInterface::setKeepScreenOn(false);
+        #elif defined(Q_OS_IOS)
+            MobileScreenMgr::setKeepScreenOn(false);
+        #endif
     }
 #endif
 
@@ -303,6 +313,10 @@ void MultiVehicleManager::_vehicleParametersReadyChanged(bool parametersReady)
 
 void MultiVehicleManager::_sendGCSHeartbeat()
 {
+    if (!SettingsManager::instance()->mavlinkSettings()->sendGCSHeartbeat()->rawValue().toBool()) {
+        return;
+    }
+
     const QList<SharedLinkInterfacePtr> sharedLinks = LinkManager::instance()->links();
     for (const SharedLinkInterfacePtr link: sharedLinks) {
         if (!link->isConnected()) {
@@ -333,6 +347,42 @@ void MultiVehicleManager::_sendGCSHeartbeat()
     }
 }
 
+void MultiVehicleManager::selectVehicle(int vehicleId)
+{
+    if(!_vehicleSelected(vehicleId)) {
+        Vehicle *const vehicle = getVehicleById(vehicleId);
+        _selectedVehicles->append(vehicle);
+        return;
+    }
+}
+
+void MultiVehicleManager::deselectVehicle(int vehicleId)
+{
+    for (int i = 0; i < _selectedVehicles->count(); i++) {
+        Vehicle *const vehicle = qobject_cast<Vehicle*>(_selectedVehicles->get(i));
+        if (vehicle->id() == vehicleId) {
+            _selectedVehicles->removeAt(i);
+            return;
+        }
+    }
+}
+
+void MultiVehicleManager::deselectAllVehicles()
+{
+    _selectedVehicles->clear();
+}
+
+bool MultiVehicleManager::_vehicleSelected(int vehicleId)
+{
+    for (int i = 0; i < _selectedVehicles->count(); i++) {
+        Vehicle *const vehicle = qobject_cast<Vehicle*>(_selectedVehicles->get(i));
+        if (vehicle->id() == vehicleId) {
+            return true;
+        }
+    }
+    return false;
+}
+
 Vehicle *MultiVehicleManager::getVehicleById(int vehicleId) const
 {
     for (int i = 0; i < _vehicles->count(); i++) {
@@ -343,23 +393,6 @@ Vehicle *MultiVehicleManager::getVehicleById(int vehicleId) const
     }
 
     return nullptr;
-}
-
-void MultiVehicleManager::_setGcsHeartbeatEnabled(bool gcsHeartBeatEnabled)
-{
-    if (gcsHeartBeatEnabled != _gcsHeartbeatEnabled) {
-        _gcsHeartbeatEnabled = gcsHeartBeatEnabled;
-        emit gcsHeartBeatEnabledChanged(gcsHeartBeatEnabled);
-
-        QSettings settings;
-        settings.setValue(kGCSHeartbeatEnabledKey, gcsHeartBeatEnabled);
-
-        if (gcsHeartBeatEnabled) {
-            _gcsHeartbeatTimer->start();
-        } else {
-            _gcsHeartbeatTimer->stop();
-        }
-    }
 }
 
 void MultiVehicleManager::_setActiveVehicle(Vehicle *vehicle)

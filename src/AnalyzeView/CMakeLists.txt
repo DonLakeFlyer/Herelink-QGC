@@ -1,59 +1,36 @@
-find_package(Qt6 REQUIRED COMPONENTS Core Charts Gui Qml QmlIntegration)
-
-qt_add_library(AnalyzeView STATIC
-    ExifParser.cc
-    ExifParser.h
-    GeoTagController.cc
-    GeoTagController.h
-    GeoTagWorker.cc
-    GeoTagWorker.h
-    LogDownloadController.cc
-    LogDownloadController.h
-    LogEntry.cc
-    LogEntry.h
-    MAVLinkChartController.cc
-    MAVLinkChartController.h
-    MAVLinkConsoleController.cc
-    MAVLinkConsoleController.h
-    MAVLinkInspectorController.cc
-    MAVLinkInspectorController.h
-    MAVLinkMessage.cc
-    MAVLinkMessage.h
-    MAVLinkMessageField.cc
-    MAVLinkMessageField.h
-    MAVLinkSystem.cc
-    MAVLinkSystem.h
-    PX4LogParser.cc
-    PX4LogParser.h
-    ULogParser.cc
-    ULogParser.h
-)
-
-target_link_libraries(AnalyzeView
+target_sources(${CMAKE_PROJECT_NAME}
     PRIVATE
-        Qt6::Charts
-        Qt6::Gui
-        Qt6::Qml
-        FactSystem
-        QGC
-        Settings
-        Utilities
-        Vehicle
-    PUBLIC
-        Qt6::Core
-        Qt6::QmlIntegration
-        MAVLink
-        QmlControls
+        ExifParser.cc
+        ExifParser.h
+        GeoTagController.cc
+        GeoTagController.h
+        GeoTagWorker.cc
+        GeoTagWorker.h
+        LogDownloadController.cc
+        LogDownloadController.h
+        LogEntry.cc
+        LogEntry.h
+        MAVLinkChartController.cc
+        MAVLinkChartController.h
+        MAVLinkConsoleController.cc
+        MAVLinkConsoleController.h
+        MAVLinkInspectorController.cc
+        MAVLinkInspectorController.h
+        MAVLinkMessage.cc
+        MAVLinkMessage.h
+        MAVLinkMessageField.cc
+        MAVLinkMessageField.h
+        MAVLinkSystem.cc
+        MAVLinkSystem.h
+        PX4LogParser.cc
+        PX4LogParser.h
+        ULogParser.cc
+        ULogParser.h
 )
 
-target_include_directories(AnalyzeView PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_precompile_headers(AnalyzeView
-    PRIVATE
-        <QtCharts/QAbstractSeries>
-)
-
-# qt_add_qml_module(AnalyzeView
+# qt_add_qml_module(QGC
 #     URI QGroundControl.AnalyzeView
 #     VERSION 1.0
 #     QML_FILES
@@ -94,111 +71,105 @@ target_precompile_headers(AnalyzeView
 
 #===========================================================================#
 
-message(STATUS "Building ULogParser")
-FetchContent_Declare(ulogparser
-    GIT_REPOSITORY https://github.com/PX4/ulog_cpp.git
+CPMAddPackage(
+    NAME ulog_cpp
+    GITHUB_REPOSITORY PX4/ulog_cpp
     GIT_TAG main
-    GIT_SHALLOW TRUE
 )
-FetchContent_MakeAvailable(ulogparser)
-if(TARGET ulog_cpp::ulog_cpp)
-    target_link_libraries(AnalyzeView PRIVATE ulog_cpp::ulog_cpp)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(ulog_cpp PRIVATE -Wno-unknown-warning-option)
+endif()
+
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ulog_cpp::ulog_cpp)
+
+#===========================================================================#
+
+set(EXPAT_EXTRA_OPTIONS)
+if(WIN32)
+    list(APPEND EXPAT_EXTRA_OPTIONS "EXPAT_MSVC_STATIC_CRT ON")
+endif()
+
+CPMAddPackage(
+    NAME EXPAT
+    VERSION 2.7.0
+    GITHUB_REPOSITORY libexpat/libexpat
+    GIT_TAG "R_2_7_0"
+    SOURCE_SUBDIR expat
+    OPTIONS
+        "EXPAT_BUILD_DOCS OFF"
+        "EXPAT_BUILD_EXAMPLES OFF"
+        "EXPAT_BUILD_FUZZERS OFF"
+        "EXPAT_BUILD_PKGCONFIG OFF"
+        "EXPAT_BUILD_TESTS OFF"
+        "EXPAT_BUILD_TOOLS OFF"
+        "EXPAT_ENABLE_INSTALL OFF"
+        "EXPAT_SHARED_LIBS OFF"
+        "${EXPAT_EXTRA_OPTIONS}"
+)
+
+set(EXPAT_USE_STATIC_LIBS ON)
+find_package(EXPAT MODULE)
+if(NOT TARGET EXPAT::EXPAT)
+    find_package(expat CONFIG)
+    if(TARGET expat::expat)
+        add_library(EXPAT::EXPAT INTERFACE IMPORTED)
+        target_link_libraries(EXPAT::EXPAT INTERFACE expat::expat)
+    endif()
+endif()
+
+if(TARGET EXPAT::EXPAT)
+    set(_EXIV2_ENABLE_XMP ON)
+else()
+    set(_EXIV2_ENABLE_XMP OFF)
 endif()
 
 #===========================================================================#
 
-set(MINIMUM_EXIV2_VERSION 0.28.0)
-set(TARGET_EXIV2_VERSION 0.28.3)
+CPMAddPackage(
+    NAME exiv2
+    VERSION 0.28.5
+    GITHUB_REPOSITORY Exiv2/exiv2
+    OPTIONS
+        "EXIV2_ENABLE_XMP ${_EXIV2_ENABLE_XMP}"
+        "EXIV2_ENABLE_EXTERNAL_XMP OFF"
+        "EXIV2_ENABLE_PNG OFF"
+        "EXIV2_ENABLE_NLS OFF"
+        "EXIV2_ENABLE_LENSDATA OFF"
+        "EXIV2_ENABLE_DYNAMIC_RUNTIME OFF"
+        "EXIV2_ENABLE_WEBREADY OFF"
+        "EXIV2_ENABLE_CURL OFF"
+        "EXIV2_ENABLE_BMFF OFF"
+        "EXIV2_ENABLE_BROTLI OFF"
+        "EXIV2_ENABLE_VIDEO OFF"
+        "EXIV2_ENABLE_INIH OFF"
+        "EXIV2_ENABLE_FILESYSTEM_ACCESS OFF"
+        "EXIV2_BUILD_SAMPLES OFF"
+        "EXIV2_BUILD_EXIV2_COMMAND OFF"
+        "EXIV2_BUILD_UNIT_TESTS OFF"
+        "EXIV2_BUILD_FUZZ_TESTS OFF"
+        "EXIV2_BUILD_DOC OFF"
+        "BUILD_WITH_CCACHE OFF"
+)
 
-set(MINIMUM_EXPAT_VERSION 2.2.6)
-set(TARGET_EXPAT_VERSION 2.6.4)
-
-# if(QGC_DOWNLOAD_DEPENDENCIES)
-#     set(EXIV2_URL)
-#     if(MSVC)
-#         set(EXIV2_URL "https://github.com/Exiv2/exiv2/releases/download/v${TARGET_EXIV2_VERSION}/exiv2-${TARGET_EXIV2_VERSION}-2019msvc64.zip")
-#     elseif(LINUX)
-#         set(EXIV2_URL "https://github.com/Exiv2/exiv2/releases/download/v${TARGET_EXIV2_VERSION}/exiv2-${TARGET_EXIV2_VERSION}-Linux64.tar.gz")
-#     elseif(MACOS)
-#         set(EXIV2_URL "https://github.com/Exiv2/exiv2/releases/download/v${TARGET_EXIV2_VERSION}/exiv2-${TARGET_EXIV2_VERSION}-Darwin.tar.gz")
-#     endif()
-
-#     if(EXIV2_URL)
-#         FetchContent_Declare(exiv2
-#            DOWNLOAD_EXTRACT_TIMESTAMP true
-#            URL ${EXIV2_URL}
-#         )
-#         FetchContent_MakeAvailable(exiv2)
-
-#         # exiv2_SOURCE_DIR
-#         # target_link_libraries(AnalyzeView PRIVATE Exiv2::exiv2lib)
-#         return()
-#     endif()
-# endif()
-
-if(NOT QGC_BUILD_DEPENDENCIES)
-    find_package(exiv2 ${MINIMUM_EXIV2_VERSION})
-    if(TARGET Exiv2::exiv2lib)
-        target_link_libraries(AnalyzeView PRIVATE Exiv2::exiv2lib)
-        return()
+if(_EXIV2_ENABLE_XMP AND TARGET exiv2-xmp)
+    target_link_libraries(exiv2-xmp PRIVATE EXPAT::EXPAT)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(exiv2-xmp PRIVATE -Wno-unused-command-line-argument -Wno-unused-but-set-variable)
+    endif()
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(exiv2-xmp PRIVATE -Wno-format -Wno-format-security)
     endif()
 endif()
 
-if(NOT QGC_BUILD_DEPENDENCIES)
-    find_package(EXPAT ${MINIMUM_EXPAT_VERSION})
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(exiv2lib PRIVATE -Wno-unused-command-line-argument)
+    target_compile_options(exiv2lib_int PRIVATE -Wno-unused-command-line-argument)
 endif()
-if(NOT TARGET EXPAT::EXPAT)
-    message(STATUS "Building Expat")
-    FetchContent_Declare(expat
-        GIT_REPOSITORY https://github.com/libexpat/libexpat.git
-        GIT_TAG R_2_6_4
-        GIT_SHALLOW TRUE
-        SOURCE_SUBDIR expat
-    )
-    set(EXPAT_BUILD_DOCS OFF CACHE INTERNAL "" FORCE)
-    set(EXPAT_BUILD_EXAMPLES OFF CACHE INTERNAL "" FORCE)
-    set(EXPAT_BUILD_FUZZERS OFF CACHE INTERNAL "" FORCE)
-    set(EXPAT_BUILD_PKGCONFIG OFF CACHE INTERNAL "" FORCE)
-    set(EXPAT_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
-    set(EXPAT_BUILD_TOOLS OFF CACHE INTERNAL "" FORCE)
-    set(EXPAT_ENABLE_INSTALL OFF CACHE INTERNAL "" FORCE)
-    set(EXPAT_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
-    FetchContent_MakeAvailable(expat)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(exiv2lib PRIVATE -Wno-unused-variable)
+    target_compile_options(exiv2lib_int PRIVATE -Wno-unused-parameter)
 endif()
 
-message(STATUS "Building Exiv2")
-FetchContent_Declare(exiv2
-    GIT_REPOSITORY https://github.com/Exiv2/exiv2.git
-    GIT_TAG "v${TARGET_EXIV2_VERSION}"
-    GIT_SHALLOW TRUE
-)
-if(TARGET EXPAT::EXPAT)
-    set(EXIV2_ENABLE_XMP ON CACHE INTERNAL "" FORCE)
-else()
-    set(EXIV2_ENABLE_XMP OFF CACHE INTERNAL "" FORCE)
-endif()
-set(EXIV2_ENABLE_EXTERNAL_XMP OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_ENABLE_PNG OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_ENABLE_NLS OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_ENABLE_LENSDATA OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_ENABLE_DYNAMIC_RUNTIME OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_ENABLE_WEBREADY OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_ENABLE_CURL OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_ENABLE_BMFF OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_ENABLE_BROTLI OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_ENABLE_VIDEO OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_ENABLE_INIH OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_ENABLE_FILESYSTEM_ACCESS ON CACHE INTERNAL "" FORCE)
-set(EXIV2_BUILD_SAMPLES OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_BUILD_EXIV2_COMMAND OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_BUILD_UNIT_TESTS OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_BUILD_FUZZ_TESTS OFF CACHE INTERNAL "" FORCE)
-set(EXIV2_BUILD_DOC OFF CACHE INTERNAL "" FORCE)
-set(BUILD_WITH_CCACHE ON CACHE INTERNAL "" FORCE)
-FetchContent_MakeAvailable(exiv2)
-
-if(TARGET Exiv2::exiv2lib)
-    target_link_libraries(AnalyzeView PRIVATE Exiv2::exiv2lib)
-    target_include_directories(AnalyzeView PRIVATE ${CMAKE_BINARY_DIR})
-    return()
-endif()
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Exiv2::exiv2lib)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${CMAKE_BINARY_DIR})

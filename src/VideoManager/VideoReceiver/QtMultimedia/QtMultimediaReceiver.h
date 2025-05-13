@@ -9,9 +9,10 @@
 
 #pragma once
 
-#include <QtCore/QString>
-#include <QtCore/QMetaObject>
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QMetaObject>
+#include <QtCore/QString>
+#include <QtCore/QTimer>
 
 #include "VideoReceiver.h"
 
@@ -22,7 +23,6 @@ class QVideoSink;
 class QMediaCaptureSession;
 class QMediaRecorder;
 class QRhi;
-class QTimer;
 class QQuickItem;
 class QQuickVideoOutput;
 
@@ -34,12 +34,13 @@ public:
     explicit QtMultimediaReceiver(QObject *parent = nullptr);
     virtual ~QtMultimediaReceiver();
 
-    static void *createVideoSink(QObject *parent, QQuickItem *widget);
+    static bool enabled();
+    static void *createVideoSink(QQuickItem *widget, QObject *parent = nullptr);
     static void releaseVideoSink(void *sink);
     static VideoReceiver *createVideoReceiver(QObject *parent);
 
 public slots:
-    void start(const QString &uri, unsigned timeout, int buffer = 0) override;
+    void start(uint32_t timeout) override;
     void stop() override;
     void startDecoding(void *sink) override;
     void stopDecoding() override;
@@ -48,13 +49,13 @@ public slots:
     void takeScreenshot(const QString &imageFile) override;
 
 protected:
+    QTimer _frameTimer;
     QMediaPlayer *_mediaPlayer = nullptr;
     QVideoSink *_videoSink = nullptr;
     QMediaCaptureSession *_captureSession = nullptr;
     QMediaRecorder *_mediaRecorder = nullptr;
     QMetaObject::Connection _videoSizeUpdater;
     QMetaObject::Connection _videoFrameUpdater;
-    QTimer *_frameTimer = nullptr;
     QRhi *_rhi = nullptr;
     const QIODevice *_streamDevice;
     QQuickVideoOutput *_videoOutput = nullptr;

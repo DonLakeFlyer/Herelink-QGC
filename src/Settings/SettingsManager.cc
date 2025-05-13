@@ -10,14 +10,14 @@
 #include "SettingsManager.h"
 #include "QGCLoggingCategory.h"
 #include "ADSBVehicleManagerSettings.h"
-#ifndef NO_ARDUPILOT_DIALECT
+#ifndef QGC_NO_ARDUPILOT_DIALECT
 #include "APMMavlinkStreamRateSettings.h"
 #endif
 #include "AppSettings.h"
 #include "AutoConnectSettings.h"
 #include "BatteryIndicatorSettings.h"
 #include "BrandImageSettings.h"
-#include "CustomMavlinkActionsSettings.h"
+#include "MavlinkActionsSettings.h"
 #include "FirmwareUpgradeSettings.h"
 #include "FlightMapSettings.h"
 #include "FlightModeSettings.h"
@@ -30,6 +30,7 @@
 #include "RTKSettings.h"
 #include "UnitsSettings.h"
 #include "VideoSettings.h"
+#include "MavlinkSettings.h"
 #ifdef QGC_VIEWER3D
 #include "Viewer3DSettings.h"
 #endif
@@ -67,14 +68,14 @@ void SettingsManager::init()
     _unitsSettings = new UnitsSettings(this); // Must be first since AppSettings references it
 
     _adsbVehicleManagerSettings = new ADSBVehicleManagerSettings(this);
-#ifndef NO_ARDUPILOT_DIALECT
+#ifndef QGC_NO_ARDUPILOT_DIALECT
     _apmMavlinkStreamRateSettings = new APMMavlinkStreamRateSettings(this);
 #endif
     _appSettings = new AppSettings(this);
     _autoConnectSettings = new AutoConnectSettings(this);
     _batteryIndicatorSettings = new BatteryIndicatorSettings(this);
     _brandImageSettings = new BrandImageSettings(this);
-    _customMavlinkActionsSettings = new CustomMavlinkActionsSettings(this);
+    _mavlinkActionsSettings = new MavlinkActionsSettings(this);
     _firmwareUpgradeSettings = new FirmwareUpgradeSettings(this);
     _flightMapSettings = new FlightMapSettings(this);
     _flightModeSettings = new FlightModeSettings(this);
@@ -86,20 +87,21 @@ void SettingsManager::init()
     _remoteIDSettings = new RemoteIDSettings(this);
     _rtkSettings = new RTKSettings(this);
     _videoSettings = new VideoSettings(this);
+    _mavlinkSettings = new MavlinkSettings(this);
 #ifdef QGC_VIEWER3D
     _viewer3DSettings = new Viewer3DSettings(this);
 #endif
 }
 
 ADSBVehicleManagerSettings *SettingsManager::adsbVehicleManagerSettings() const { return _adsbVehicleManagerSettings; }
-#ifndef NO_ARDUPILOT_DIALECT
+#ifndef QGC_NO_ARDUPILOT_DIALECT
 APMMavlinkStreamRateSettings *SettingsManager::apmMavlinkStreamRateSettings() const { return _apmMavlinkStreamRateSettings; }
 #endif
 AppSettings *SettingsManager::appSettings() const { return _appSettings; }
 AutoConnectSettings *SettingsManager::autoConnectSettings() const { return _autoConnectSettings; }
 BatteryIndicatorSettings *SettingsManager::batteryIndicatorSettings() const { return _batteryIndicatorSettings; }
 BrandImageSettings *SettingsManager::brandImageSettings() const { return _brandImageSettings; }
-CustomMavlinkActionsSettings *SettingsManager::customMavlinkActionsSettings() const { return _customMavlinkActionsSettings; }
+MavlinkActionsSettings *SettingsManager::mavlinkActionsSettings() const { return _mavlinkActionsSettings; }
 FirmwareUpgradeSettings *SettingsManager::firmwareUpgradeSettings() const { return _firmwareUpgradeSettings; }
 FlightMapSettings *SettingsManager::flightMapSettings() const { return _flightMapSettings; }
 FlightModeSettings *SettingsManager::flightModeSettings() const { return _flightModeSettings; }
@@ -112,6 +114,7 @@ RemoteIDSettings *SettingsManager::remoteIDSettings() const { return _remoteIDSe
 RTKSettings *SettingsManager::rtkSettings() const { return _rtkSettings; }
 UnitsSettings *SettingsManager::unitsSettings() const { return _unitsSettings; }
 VideoSettings *SettingsManager::videoSettings() const { return _videoSettings; }
+MavlinkSettings *SettingsManager::mavlinkSettings() const { return _mavlinkSettings; }
 #ifdef QGC_VIEWER3D
 Viewer3DSettings *SettingsManager::viewer3DSettings() const { return _viewer3DSettings; }
 #endif
