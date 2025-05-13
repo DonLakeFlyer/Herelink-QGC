@@ -41,7 +41,7 @@ Rectangle {
     property string _setToVehicleLocationStr:   qsTr("Set to vehicle location")
     property bool   _showCameraSection:         !_missionVehicle.apmFirmware
     property int    _altitudeMode:              missionItem.altitudesAreRelative ? QGroundControl.AltitudeModeRelative : QGroundControl.AltitudeModeAbsolute
-    property real   _previousLoiterRadius:      0
+    property real   _previousLoiterRadius:      missionItem.loiterRadius.rawValue
 
     Column {
         id:                 editorColumn
@@ -70,16 +70,18 @@ Rectangle {
                 text:       qsTr("Use loiter to altitude")
                 fact:       missionItem.useLoiterToAlt
 
+                Component.onCompleted: {
+                    if (!missionItem.useLoiterToAlt.rawValue) {
+                        _previousLoiterRadius = missionItem.loiterRadius.defaultValue
+                    }
+                }
+
                 // When not using loiter to altitude, set radius to 0 to set the
                 // glide slope heading correctly
                 onCheckedChanged: {
                     if (checked) {
-                        // Restore the previous loiter radius or set the default value
-                        if (_previousLoiterRadius > 0) {
-                            missionItem.loiterRadius.rawValue = _previousLoiterRadius
-                        } else {
-                            missionItem.loiterRadius.rawValue = missionItem.loiterRadius.defaultValue
-                        }
+                        // Restore the previous loiter radius
+                        missionItem.loiterRadius.rawValue = _previousLoiterRadius
                     } else {
                         _previousLoiterRadius = missionItem.loiterRadius.rawValue
                         missionItem.loiterRadius.rawValue = 0
@@ -334,7 +336,7 @@ Rectangle {
         ColumnLayout {
             anchors.left:   parent.left
             anchors.right:  parent.right
-            spacing:        ScreenTools.defaultFontPixelHeight
+            spacing:        ScreenTools.defaultFontPixelHeight / 2
             visible:        !landingCoordColumn.visible
 
             onVisibleChanged: {
@@ -347,6 +349,12 @@ Rectangle {
                 Layout.fillWidth:   true
                 wrapMode:           Text.WordWrap
                 text:               qsTr("Drag the loiter point to adjust landing direction for wind and obstacles.")
+            }
+
+            FactCheckBox {
+                text:       qsTr("Loiter clockwise")
+                fact:       missionItem.loiterClockwise
+                visible:    missionItem.useLoiterToAlt.rawValue
             }
 
             QGCButton {

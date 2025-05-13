@@ -19,7 +19,7 @@ class AppSettings;
 class AutoConnectSettings;
 class BatteryIndicatorSettings;
 class BrandImageSettings;
-class CustomMavlinkActionsSettings;
+class MavlinkActionsSettings;
 class FirmwareUpgradeSettings;
 class FlightMapSettings;
 class FlightModeSettings;
@@ -33,6 +33,7 @@ class RTKSettings;
 class UnitsSettings;
 class VideoSettings;
 class Viewer3DSettings;
+class MavlinkSettings;
 
 Q_DECLARE_LOGGING_CATEGORY(SettingsManagerLog)
 
@@ -40,17 +41,17 @@ Q_DECLARE_LOGGING_CATEGORY(SettingsManagerLog)
 class SettingsManager : public QObject
 {
     Q_OBJECT
-    QML_ELEMENT
-    QML_UNCREATABLE("")
+    // QML_ELEMENT
+    // QML_UNCREATABLE("")
     Q_MOC_INCLUDE("ADSBVehicleManagerSettings.h")
-#ifndef NO_ARDUPILOT_DIALECT
+#ifndef QGC_NO_ARDUPILOT_DIALECT
     Q_MOC_INCLUDE("APMMavlinkStreamRateSettings.h")
 #endif
     Q_MOC_INCLUDE("AppSettings.h")
     Q_MOC_INCLUDE("AutoConnectSettings.h")
     Q_MOC_INCLUDE("BatteryIndicatorSettings.h")
     Q_MOC_INCLUDE("BrandImageSettings.h")
-    Q_MOC_INCLUDE("CustomMavlinkActionsSettings.h")
+    Q_MOC_INCLUDE("MavlinkActionsSettings.h")
     Q_MOC_INCLUDE("FirmwareUpgradeSettings.h")
     Q_MOC_INCLUDE("FlightMapSettings.h")
     Q_MOC_INCLUDE("FlightModeSettings.h")
@@ -63,18 +64,19 @@ class SettingsManager : public QObject
     Q_MOC_INCLUDE("RTKSettings.h")
     Q_MOC_INCLUDE("UnitsSettings.h")
     Q_MOC_INCLUDE("VideoSettings.h")
+    Q_MOC_INCLUDE("MavlinkSettings.h")
 #ifdef QGC_VIEWER3D
     Q_MOC_INCLUDE("Viewer3DSettings.h")
 #endif
     Q_PROPERTY(QObject *adsbVehicleManagerSettings      READ adsbVehicleManagerSettings     CONSTANT)
-#ifndef NO_ARDUPILOT_DIALECT
+#ifndef QGC_NO_ARDUPILOT_DIALECT
     Q_PROPERTY(QObject *apmMavlinkStreamRateSettings    READ apmMavlinkStreamRateSettings   CONSTANT)
 #endif
     Q_PROPERTY(QObject *appSettings                     READ appSettings                    CONSTANT)
     Q_PROPERTY(QObject *autoConnectSettings             READ autoConnectSettings            CONSTANT)
     Q_PROPERTY(QObject *batteryIndicatorSettings        READ batteryIndicatorSettings       CONSTANT)
     Q_PROPERTY(QObject *brandImageSettings              READ brandImageSettings             CONSTANT)
-    Q_PROPERTY(QObject *customMavlinkActionsSettings    READ customMavlinkActionsSettings   CONSTANT)
+    Q_PROPERTY(QObject *mavlinkActionsSettings    READ mavlinkActionsSettings   CONSTANT)
     Q_PROPERTY(QObject *firmwareUpgradeSettings         READ firmwareUpgradeSettings        CONSTANT)
     Q_PROPERTY(QObject *flightMapSettings               READ flightMapSettings              CONSTANT)
     Q_PROPERTY(QObject *flightModeSettings              READ flightModeSettings             CONSTANT)
@@ -87,6 +89,7 @@ class SettingsManager : public QObject
     Q_PROPERTY(QObject *rtkSettings                     READ rtkSettings                    CONSTANT)
     Q_PROPERTY(QObject *unitsSettings                   READ unitsSettings                  CONSTANT)
     Q_PROPERTY(QObject *videoSettings                   READ videoSettings                  CONSTANT)
+    Q_PROPERTY(QObject *mavlinkSettings                 READ mavlinkSettings                CONSTANT)
 #ifdef QGC_VIEWER3D
     Q_PROPERTY(QObject *viewer3DSettings                READ viewer3DSettings               CONSTANT)
 #endif
@@ -100,14 +103,14 @@ public:
     void init();
 
     ADSBVehicleManagerSettings *adsbVehicleManagerSettings() const;
-#ifndef NO_ARDUPILOT_DIALECT
+#ifndef QGC_NO_ARDUPILOT_DIALECT
     APMMavlinkStreamRateSettings *apmMavlinkStreamRateSettings() const;
 #endif
     AppSettings *appSettings() const;
     AutoConnectSettings *autoConnectSettings() const;
     BatteryIndicatorSettings *batteryIndicatorSettings() const;
     BrandImageSettings *brandImageSettings() const;
-    CustomMavlinkActionsSettings *customMavlinkActionsSettings() const;
+    MavlinkActionsSettings *mavlinkActionsSettings() const;
     FirmwareUpgradeSettings *firmwareUpgradeSettings() const;
     FlightMapSettings *flightMapSettings() const;
     FlightModeSettings *flightModeSettings() const;
@@ -120,20 +123,21 @@ public:
     RTKSettings *rtkSettings() const;
     UnitsSettings *unitsSettings() const;
     VideoSettings *videoSettings() const;
+    MavlinkSettings *mavlinkSettings() const;
 #ifdef QGC_VIEWER3D
     Viewer3DSettings *viewer3DSettings() const;
 #endif
 
 private:
     ADSBVehicleManagerSettings *_adsbVehicleManagerSettings = nullptr;
-#ifndef NO_ARDUPILOT_DIALECT
+#ifndef QGC_NO_ARDUPILOT_DIALECT
     APMMavlinkStreamRateSettings *_apmMavlinkStreamRateSettings = nullptr;
 #endif
     AppSettings *_appSettings = nullptr;
     AutoConnectSettings *_autoConnectSettings = nullptr;
     BatteryIndicatorSettings *_batteryIndicatorSettings = nullptr;
     BrandImageSettings *_brandImageSettings = nullptr;
-    CustomMavlinkActionsSettings *_customMavlinkActionsSettings = nullptr;
+    MavlinkActionsSettings *_mavlinkActionsSettings = nullptr;
     FirmwareUpgradeSettings *_firmwareUpgradeSettings = nullptr;
     FlightMapSettings *_flightMapSettings = nullptr;
     FlightModeSettings *_flightModeSettings = nullptr;
@@ -146,6 +150,7 @@ private:
     RTKSettings *_rtkSettings = nullptr;
     UnitsSettings *_unitsSettings = nullptr;
     VideoSettings *_videoSettings = nullptr;
+    MavlinkSettings *_mavlinkSettings = nullptr;
 #ifdef QGC_VIEWER3D
     Viewer3DSettings *_viewer3DSettings = nullptr;
 #endif

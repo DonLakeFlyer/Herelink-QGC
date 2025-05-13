@@ -31,14 +31,24 @@ QString LINZBasemapMapProvider::_getURL(int x, int y, int zoom) const
     return _mapUrl.arg(zoom).arg(x).arg(y).arg(_imageFormat);
 }
 
+QString OpenStreetMapProvider::_getURL(int x, int y, int zoom) const
+{
+    return _mapUrl.arg(zoom).arg(x).arg(y);
+}
+
 QString StatkartMapProvider::_getURL(int x, int y, int zoom) const
 {
-    return _mapUrl.arg(_mapName).arg(zoom).arg(x).arg(y);
+    return _mapUrl.arg(zoom).arg(y).arg(x);
 }
 
 QString EniroMapProvider::_getURL(int x, int y, int zoom) const
 {
     return _mapUrl.arg(zoom).arg(x).arg((1 << zoom) - 1 - y).arg(_imageFormat);
+}
+
+QString SvalbardMapProvider::_getURL(int x, int y, int zoom) const
+{
+    return _mapUrl.arg(zoom).arg(y).arg(x);
 }
 
 QString MapQuestMapProvider::_getURL(int x, int y, int zoom) const

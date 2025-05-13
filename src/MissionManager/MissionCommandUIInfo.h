@@ -9,14 +9,17 @@
 
 #pragma once
 
-#include "QGCMAVLink.h"
-
+#include <QtCore/QLoggingCategory>
 #include <QtCore/QString>
 #include <QtCore/QVariant>
 
+#include "QGCMAVLink.h"
+
+Q_DECLARE_LOGGING_CATEGORY(MissionCommandsLog)
+
 class MissionCommandTree;
 class MissionCommandUIInfo;
-#ifdef UNITTEST_BUILD
+#ifdef QGC_UNITTEST_BUILD
 class MissionCommandTreeTest;
 #endif
 
@@ -212,7 +215,7 @@ private:
     static constexpr const char* _advancedCategory             = "Advanced";
 
     friend class MissionCommandTree;    
-#ifdef UNITTEST_BUILD
+#ifdef QGC_UNITTEST_BUILD
     friend class MissionCommandTreeTest;
 #endif
 };

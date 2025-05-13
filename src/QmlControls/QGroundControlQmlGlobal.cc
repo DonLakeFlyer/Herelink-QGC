@@ -27,8 +27,8 @@
 #include "QGCGeoBoundingCube.h"
 #include "QGCMapPolygon.h"
 #include "QGCMapCircle.h"
-#include "CustomAction.h"
-#include "CustomActionManager.h"
+#include "MavlinkAction.h"
+#include "MavlinkActionManager.h"
 #include "EditPositionDialogController.h"
 #include "ParameterEditorController.h"
 #include "QGCFileDialogController.h"
@@ -43,7 +43,8 @@
 #include "ToolStripActionList.h"
 #include "VideoManager.h"
 #include "MultiVehicleManager.h"
-#ifndef NO_SERIAL_LINK
+#include "QGCLoggingCategory.h"
+#ifndef QGC_NO_SERIAL_LINK
 #include "GPSManager.h"
 #include "GPSRtk.h"
 #endif
@@ -59,6 +60,8 @@
 
 #include <QtCore/QSettings>
 #include <QtCore/QLineF>
+
+QGC_LOGGING_CATEGORY(GuidedActionsControllerLog, "GuidedActionsControllerLog")
 
 QGeoCoordinate QGroundControlQmlGlobal::_coord = QGeoCoordinate(0.0,0.0);
 double QGroundControlQmlGlobal::_zoom = 2;
@@ -84,8 +87,8 @@ void QGroundControlQmlGlobal::registerQmlTypes()
     qmlRegisterUncreatableType<QGCMapPolygon>           ("QGroundControl.FlightMap",             1, 0, "QGCMapPolygon",       "Reference only");
     qmlRegisterUncreatableType<QmlObjectListModel>      ("QGroundControl",                       1, 0, "QmlObjectListModel",  "Reference only");
 
-    qmlRegisterType<CustomAction>                       ("QGroundControl.Controllers",           1, 0, "CustomAction");
-    qmlRegisterType<CustomActionManager>                ("QGroundControl.Controllers",           1, 0, "CustomActionManager");
+    qmlRegisterType<MavlinkAction>                      ("QGroundControl.Controllers",           1, 0, "MavlinkAction");
+    qmlRegisterType<MavlinkActionManager>               ("QGroundControl.Controllers",           1, 0, "MavlinkActionManager");
     qmlRegisterType<EditPositionDialogController>       ("QGroundControl.Controllers",           1, 0, "EditPositionDialogController");
     qmlRegisterType<HorizontalFactValueGrid>            ("QGroundControl.Templates",             1, 0, "HorizontalFactValueGrid");
     qmlRegisterType<ParameterEditorController>          ("QGroundControl.Controllers",           1, 0, "ParameterEditorController");
@@ -116,7 +119,7 @@ QGroundControlQmlGlobal::QGroundControlQmlGlobal(QObject *parent)
     , _settingsManager(SettingsManager::instance())
     , _corePlugin(QGCCorePlugin::instance())
     , _globalPalette(new QGCPalette(this))
-#ifndef NO_SERIAL_LINK
+#ifndef QGC_NO_SERIAL_LINK
     , _gpsRtkFactGroup(GPSManager::instance()->gpsRtk()->gpsRtkFactGroup())
 #endif
 #ifndef QGC_AIRLINK_DISABLED
@@ -137,7 +140,7 @@ QGroundControlQmlGlobal::QGroundControlQmlGlobal(QObject *parent)
     _zoom = settings.value(_flightMapZoomSettingsKey, _zoom).toDouble();
     _flightMapPositionSettledTimer.setSingleShot(true);
     _flightMapPositionSettledTimer.setInterval(1000);
-    connect(&_flightMapPositionSettledTimer, &QTimer::timeout, [](){
+    (void) connect(&_flightMapPositionSettledTimer, &QTimer::timeout, this, []() {
         // When they settle, save flightMapPosition and Zoom to the config file
         QSettings settings;
         settings.beginGroup(_flightMapPositionSettingsGroup);
@@ -259,18 +262,6 @@ void QGroundControlQmlGlobal::stopOneMockLink(void)
 #endif
 }
 
-void QGroundControlQmlGlobal::setIsVersionCheckEnabled(bool enable)
-{
-    MAVLinkProtocol::instance()->enableVersionCheck(enable);
-    emit isVersionCheckEnabledChanged(enable);
-}
-
-void QGroundControlQmlGlobal::setMavlinkSystemID(int id)
-{
-    MAVLinkProtocol::instance()->setSystemId(id);
-    emit mavlinkSystemIDChanged(id);
-}
-
 bool QGroundControlQmlGlobal::singleFirmwareSupport(void)
 {
     return FirmwarePluginManager::instance()->supportedFirmwareClasses().count() == 1;
@@ -380,16 +371,6 @@ QString QGroundControlQmlGlobal::altitudeModeShortDescription(AltMode altMode)
     return QString();
 }
 
-bool QGroundControlQmlGlobal::isVersionCheckEnabled()
-{
-    return MAVLinkProtocol::instance()->versionCheckEnabled();
-}
-
-int QGroundControlQmlGlobal::mavlinkSystemID()
-{
-    return MAVLinkProtocol::instance()->getSystemId();
-}
-
 QString QGroundControlQmlGlobal::elevationProviderName()
 {
     return _settingsManager->flightMapSettings()->elevationMapProvider()->rawValue().toString();
@@ -428,4 +409,24 @@ void QGroundControlQmlGlobal::deleteAllSettingsNextBoot()
 void QGroundControlQmlGlobal::clearDeleteAllSettingsNextBoot()
 {
     qgcApp()->clearDeleteAllSettingsNextBoot();
+}
+
+QStringList QGroundControlQmlGlobal::loggingCategories()
+{
+    return QGCLoggingCategoryRegister::instance()->registeredCategories();
+}
+
+void QGroundControlQmlGlobal::setCategoryLoggingOn(const QString &category, bool enable)
+{
+    QGCLoggingCategoryRegister::setCategoryLoggingOn(category, enable);
+}
+
+bool QGroundControlQmlGlobal::categoryLoggingOn(const QString &category)
+{
+    return QGCLoggingCategoryRegister::categoryLoggingOn(category);
+}
+
+void QGroundControlQmlGlobal::updateLoggingFilterRules()
+{
+    QGCLoggingCategoryRegister::instance()->setFilterRulesFromSettings(QString());
 }

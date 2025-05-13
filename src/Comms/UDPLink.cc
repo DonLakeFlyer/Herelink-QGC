@@ -14,6 +14,7 @@
 #include "SettingsManager.h"
 
 #include <QtCore/QMutexLocker>
+#include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QNetworkDatagram>
 #include <QtNetwork/QNetworkInterface>
@@ -43,14 +44,6 @@ namespace {
 UDPConfiguration::UDPConfiguration(const QString &name, QObject *parent)
     : LinkConfiguration(name, parent)
 {
-    AutoConnectSettings *const settings = SettingsManager::instance()->autoConnectSettings();
-    setLocalPort(settings->udpListenPort()->rawValue().toInt());
-
-    const QString targetHostIP = settings->udpTargetHostIP()->rawValue().toString();
-    if (!targetHostIP.isEmpty()) {
-        const quint16 targetHostPort = settings->udpTargetHostPort()->rawValue().toUInt();
-        addHost(targetHostIP, targetHostPort);
-    }
 }
 
 UDPConfiguration::UDPConfiguration(const UDPConfiguration *source, QObject *parent)
@@ -68,6 +61,28 @@ UDPConfiguration::~UDPConfiguration()
     // qCDebug(UDPLinkLog) << Q_FUNC_INFO << this;
 }
 
+void UDPConfiguration::setAutoConnect(bool autoc)
+{
+    if (isAutoConnect() != autoc) {
+        AutoConnectSettings *const settings = SettingsManager::instance()->autoConnectSettings();
+        const QString targetHostIP = settings->udpTargetHostIP()->rawValue().toString();
+        const quint16 targetHostPort = settings->udpTargetHostPort()->rawValue().toUInt();
+        if (autoc) {
+            setLocalPort(settings->udpListenPort()->rawValue().toInt());    
+            if (!targetHostIP.isEmpty()) {
+                addHost(targetHostIP, targetHostPort);
+            }
+        }
+        else {
+            setLocalPort(0);
+            if (!targetHostIP.isEmpty()) {
+                removeHost(targetHostIP, targetHostPort);
+            }
+        }
+        LinkConfiguration::setAutoConnect(autoc);
+    }
+}
+
 void UDPConfiguration::copyFrom(const LinkConfiguration *source)
 {
     Q_ASSERT(source);
@@ -80,7 +95,7 @@ void UDPConfiguration::copyFrom(const LinkConfiguration *source)
     _targetHosts.clear();
 
     for (const std::shared_ptr<UDPClient> &target : udpSource->targetHosts()) {
-        if (!_targetHosts.contains(target)) {
+        if (!containsTarget(_targetHosts, target->address, target->port)) {
             _targetHosts.append(std::make_shared<UDPClient>(target.get()));
             _updateHostList();
         }
@@ -108,7 +123,7 @@ void UDPConfiguration::loadSettings(QSettings &settings, const QString &root)
     settings.endGroup();
 }
 
-void UDPConfiguration::saveSettings(QSettings &settings, const QString &root)
+void UDPConfiguration::saveSettings(QSettings &settings, const QString &root) const
 {
     settings.beginGroup(root);
 
@@ -176,12 +191,10 @@ void UDPConfiguration::removeHost(const QString &host)
             return;
         }
 
-        QMutableListIterator<std::shared_ptr<UDPClient>> it(_targetHosts);
-        while (it.hasNext()) {
-            std::shared_ptr<UDPClient> target = it.next();
-            if ((target->address == address) && (target->port == port)) {
-                target.reset();
-                it.remove();
+        for (qsizetype i = 0; i < _targetHosts.size(); ++i) {
+            const std::shared_ptr<UDPClient> &target = _targetHosts[i];
+            if (target->address == address && target->port == port) {
+                _targetHosts.removeAt(i);
                 _updateHostList();
                 return;
             }
@@ -205,12 +218,10 @@ void UDPConfiguration::removeHost(const QString &host, quint16 port)
         return;
     }
 
-    QMutableListIterator<std::shared_ptr<UDPClient>> it(_targetHosts);
-    while (it.hasNext()) {
-        std::shared_ptr<UDPClient> target = it.next();
-        if ((target->address == address) && (target->port == port)) {
-            target.reset();
-            it.remove();
+    for (qsizetype i = 0; i < _targetHosts.size(); ++i) {
+        const std::shared_ptr<UDPClient> &target = _targetHosts[i];
+        if (target->address == address && target->port == port) {
+            _targetHosts.removeAt(i);
             _updateHostList();
             return;
         }
@@ -374,7 +385,7 @@ void UDPWorker::writeData(const QByteArray &data)
 
     // Send to all manually targeted systems
     for (const std::shared_ptr<UDPClient> &target : _udpConfig->targetHosts()) {
-        if (!_sessionTargets.contains(target)) {
+        if (!containsTarget(_sessionTargets, target->address, target->port)) {
             if (_socket->writeDatagram(data, target->address, target->port) < 0) {
                 qCWarning(UDPLinkLog) << "Could Not Send Data - Write Failed!";
             }
@@ -629,7 +640,7 @@ void UDPLink::_writeBytes(const QByteArray& bytes)
     (void) QMetaObject::invokeMethod(_worker, "writeData", Qt::QueuedConnection, Q_ARG(QByteArray, bytes));
 }
 
-bool UDPLink::isSecureConnection()
+bool UDPLink::isSecureConnection() const
 {
-    return QGCDeviceInfo::isNetworkWired();
+    return QGCDeviceInfo::isNetworkEthernet();
 }

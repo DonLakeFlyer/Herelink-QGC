@@ -7,17 +7,19 @@
  *
  ****************************************************************************/
 
-#include <QtCore/QProcessEnvironment>
-#include <QtCore/QtPlugin>
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QMessageBox>
 #include <QtQuick/QQuickWindow>
+#include <QtWidgets/QApplication>
+
+#ifdef Q_OS_MACOS
+    #include <QtCore/QProcessEnvironment>
+#endif
 
 #include "QGCApplication.h"
-#include "QGC.h"
-#include "AppMessages.h"
+#include "QGCLogging.h"
+#include "CmdLineOptParser.h"
 
-#ifndef __mobile__
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
+    #include <QtWidgets/QMessageBox>
     #include "RunGuard.h"
 #endif
 
@@ -25,12 +27,15 @@
     #include "AndroidInterface.h"
 #endif
 
+#ifdef Q_OS_LINUX
+#ifndef Q_OS_ANDROID
+    #include "SignalHandler.h"
+#endif
+#endif
+
 #ifdef QT_DEBUG
-
-#include "CmdLineOptParser.h"
-
-#ifdef UNITTEST_BUILD
-#include "UnitTestList.h"
+#ifdef QGC_UNITTEST_BUILD
+    #include "UnitTestList.h"
 #endif
 
 #ifdef Q_OS_WIN
@@ -54,23 +59,6 @@ int WindowsCrtReportHook(int reportType, char* message, int* returnValue)
 
 #endif // QT_DEBUG
 
-// To shut down QGC on Ctrl+C on Linux
-#ifdef Q_OS_LINUX
-
-#include <csignal>
-
-void sigHandler(int s)
-{
-    std::signal(s, SIG_DFL);
-    if(qgcApp()) {
-        qgcApp()->mainRootWindow()->close();
-        QEvent event{QEvent::Quit};
-        qgcApp()->event(&event);
-    }
-}
-
-#endif /* Q_OS_LINUX */
-
 //-----------------------------------------------------------------------------
 /**
  * @brief Starts the application
@@ -82,16 +70,15 @@ void sigHandler(int s)
 
 int main(int argc, char *argv[])
 {
-#ifndef __mobile__
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
     // We make the runguard key different for custom and non custom
     // builds, so they can be executed together in the same device.
     // Stable and Daily have same QGC_APP_NAME so they would
     // not be able to run at the same time
-    const QString runguardString = QString("%1 RunGuardKey").arg(QGC_APP_NAME);
+    const QString runguardString = QStringLiteral("%1 RunGuardKey").arg(QGC_APP_NAME);
 
     RunGuard guard(runguardString);
     if (!guard.tryToRun()) {
-        // QApplication is necessary to use QMessageBox
         QApplication errorApp(argc, argv);
         QMessageBox::critical(nullptr, QObject::tr("Error"),
             QObject::tr("A second instance of %1 is already running. Please close the other instance and try again.").arg(QGC_APP_NAME)
@@ -114,25 +101,18 @@ int main(int argc, char *argv[])
 #endif
 #endif
 
-    //-- Record boot time
-    QGC::initTimer();
-
 #ifdef Q_OS_UNIX
-    //Force writing to the console on UNIX/BSD devices
     if (!qEnvironmentVariableIsSet("QT_LOGGING_TO_CONSOLE")) {
         qputenv("QT_LOGGING_TO_CONSOLE", "1");
     }
 #endif
 
-    // install the message handler
-    AppMessages::installHandler();
+    QGCLogging::installHandler();
 
-#ifdef Q_OS_MAC
-#ifndef Q_OS_IOS
+#ifdef Q_OS_MACOS
     // Prevent Apple's app nap from screwing us over
     // tip: the domain can be cross-checked on the command line with <defaults domains>
     QProcess::execute("defaults", {"write org.qgroundcontrol.qgroundcontrol NSAppSleepDisabled -bool YES"});
-#endif
 #endif
 
 #ifdef Q_OS_WIN
@@ -150,16 +130,10 @@ int main(int argc, char *argv[])
             break;
         }
     }
-
-// In Windows, the compiler doesn't see the use of the class created by Q_IMPORT_PLUGIN
-#pragma warning( disable : 4930 4101 )
-
 #endif
 
-    // We statically link our own QtLocation plugin
-    Q_IMPORT_PLUGIN(QGeoServiceProviderFactoryQGC)
-
-    bool runUnitTests = false;          // Run unit tests
+    bool runUnitTests = false;
+    bool simpleBootTest = false;
 
 #ifdef QT_DEBUG
     // We parse a small set of command line options here prior to QGCApplication in order to handle the ones
@@ -176,12 +150,16 @@ int main(int argc, char *argv[])
         // Add additional command line option flags here
     };
 
-    ParseCmdLineOptions(argc, argv, rgCmdLineOptions, sizeof(rgCmdLineOptions)/sizeof(rgCmdLineOptions[0]), false);
+    ParseCmdLineOptions(argc, argv, rgCmdLineOptions, std::size(rgCmdLineOptions), false);
     if (stressUnitTests) {
         runUnitTests = true;
     }
 
 #ifdef Q_OS_WIN
+    if (!qEnvironmentVariableIsSet("QT_WIN_DEBUG_CONSOLE")) {
+        qputenv("QT_WIN_DEBUG_CONSOLE", "attach"); // new
+    }
+
     if (quietWindowsAsserts) {
         _CrtSetReportHook(WindowsCrtReportHook);
     }
@@ -193,20 +171,27 @@ int main(int argc, char *argv[])
         SetErrorMode(dwMode | SEM_NOGPFAULTERRORBOX);
     }
 #endif // Q_OS_WIN
+#else
+    CmdLineOpt_t rgCmdLineOptions[] = {
+        { "--simple-boot-test", &simpleBootTest, nullptr },
+    };
+    ParseCmdLineOptions(argc, argv, rgCmdLineOptions, std::size(rgCmdLineOptions), false);
 #endif // QT_DEBUG
 
-    QGCApplication app(argc, argv, runUnitTests);
+    QGCApplication app(argc, argv, runUnitTests, simpleBootTest);
 
-    #ifdef Q_OS_LINUX
-        std::signal(SIGINT, sigHandler);
-        std::signal(SIGTERM, sigHandler);
-    #endif
+#ifdef Q_OS_LINUX
+#ifndef Q_OS_ANDROID
+    SignalHandler::instance();
+    (void) SignalHandler::setupSignalHandlers();
+#endif
+#endif
 
     app.init();
 
     int exitCode = 0;
 
-#ifdef UNITTEST_BUILD
+#ifdef QGC_UNITTEST_BUILD
     if (runUnitTests) {
         exitCode = runTests(stressUnitTests, unitTestOptions);
     } else
@@ -216,7 +201,9 @@ int main(int argc, char *argv[])
             AndroidInterface::checkStoragePermissions();
         #endif
 
-        exitCode = app.exec();
+        if (!simpleBootTest) {
+            exitCode = app.exec();
+        }
     }
 
     app.shutdown();
