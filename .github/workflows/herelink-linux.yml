@@ -11,7 +11,7 @@ on:
       - 'docs/**' # Do not trigger for any changes under docs
   pull_request:
     paths:
-      - '.github/workflows/android-linux.yml'
+      - '.github/workflows/herelink-linux.yml'
       - 'deploy/android/**'
       - 'src/**'
       - 'android/**'
