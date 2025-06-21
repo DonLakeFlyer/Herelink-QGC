@@ -39,7 +39,7 @@ VTOLLandingComplexItem::VTOLLandingComplexItem(PlanMasterController* masterContr
     , _stopTakingPhotosFact     (settingsGroup, _metaDataMap[stopTakingPhotosName])
     , _stopTakingVideoFact      (settingsGroup, _metaDataMap[stopTakingVideoName])
 {
-    _editorQml      = "qrc:/qml/VTOLLandingPatternEditor.qml";
+    _editorQml      = "qrc:/qml/QGroundControl/Controls/VTOLLandingPatternEditor.qml";
     _isIncomplete   = false;
 
     _init();
@@ -140,7 +140,7 @@ void VTOLLandingComplexItem::_updateFlightPathSegmentsDontCallDirectly(void)
         emit terrainCollisionChanged(false);
     }
 
-    _flightPathSegments.beginReset();
+    _flightPathSegments.beginResetModel();
     _flightPathSegments.clearAndDeleteContents();
     if (useLoiterToAlt()->rawValue().toBool()) {
         _appendFlightPathSegment(FlightPathSegment::SegmentTypeGeneric, finalApproachCoordinate(), amslEntryAlt(), loiterTangentCoordinate(),  amslEntryAlt()); // Best we can do to simulate loiter circle terrain profile
@@ -149,7 +149,7 @@ void VTOLLandingComplexItem::_updateFlightPathSegmentsDontCallDirectly(void)
         _appendFlightPathSegment(FlightPathSegment::SegmentTypeGeneric, finalApproachCoordinate(), amslEntryAlt(), landingCoordinate(),        amslEntryAlt());
     }
     _appendFlightPathSegment(FlightPathSegment::SegmentTypeLand, landingCoordinate(), amslEntryAlt(), landingCoordinate(), amslExitAlt());
-    _flightPathSegments.endReset();
+    _flightPathSegments.endResetModel();
 
     if (_cTerrainCollisionSegments != 0) {
         emit terrainCollisionChanged(true);

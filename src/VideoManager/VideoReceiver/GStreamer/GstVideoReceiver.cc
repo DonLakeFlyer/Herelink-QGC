@@ -70,7 +70,7 @@ void GstVideoReceiver::start(uint32_t timeout)
     _timeout = timeout;
     _buffer = lowLatency() ? -1 : 0;
 
-    qCDebug(GstVideoReceiverLog) << "Starting" << _uri << ", buffer" << _buffer;
+    qCDebug(GstVideoReceiverLog) << "Starting" << _uri << ", lowLatency" << lowLatency() << ", timeout" << _timeout;
 
     _endOfStream = false;
 
@@ -242,7 +242,7 @@ void GstVideoReceiver::stop()
         GstPad *sinkpad = gst_element_get_static_pad(_tee, "sink");
         if (sinkpad) {
             gst_pad_remove_probe(sinkpad, _teeProbeId);
-            sinkpad = nullptr;
+            gst_clear_object(&sinkpad);
         }
         _teeProbeId = 0;
     }
@@ -1176,10 +1176,12 @@ void GstVideoReceiver::_dispatchSignal(Task emitter)
     _signalDepth -= 1;
 }
 
-gboolean GstVideoReceiver::_onBusMessage(GstBus *bus, GstMessage *msg, gpointer data)
+gboolean GstVideoReceiver::_onBusMessage(GstBus * /* bus */, GstMessage *msg, gpointer data)
 {
-    Q_UNUSED(bus)
-    Q_ASSERT(msg); Q_ASSERT(data);
+    if (!msg || !data) {
+        qCCritical(GstVideoReceiverLog) << "Invalid parameters in _onBusMessage: msg=" << msg << "data=" << data;
+        return TRUE;
+    }
 
     GstVideoReceiver *pThis = static_cast<GstVideoReceiver*>(data);
 
@@ -1410,100 +1412,6 @@ GstPadProbeReturn GstVideoReceiver::_keyframeWatch(GstPad *pad, GstPadProbeInfo 
 
     return GST_PAD_PROBE_REMOVE;
 }
-
-// void Streamer::handle_gst_message(GstElement *pipeline, const QString &pipelineType)
-// {
-//   GstBus *bus = gst_element_get_bus(pipeline);
-//   GstMessage *message = gst_bus_pop_filtered(bus, GST_MESSAGE_ANY);
-//   if (message) {
-//     switch (GST_MESSAGE_TYPE(message)) {
-//     case GST_MESSAGE_ERROR: {
-//       GError *error = nullptr;
-//       gst_message_parse_error(message, &error, nullptr);
-//       QString errorMsg = QString("%1 pipeline error: %2").arg(pipelineType, error->message);
-//       emit errorOccurred(errorMsg);
-//       g_clear_error(&error);
-//       break;
-//     }
-//     case GST_MESSAGE_WARNING: {
-//       GError *warning = nullptr;
-//       gst_message_parse_warning(message, &warning, nullptr);
-//       QString warningMsg = QString("%1 pipeline warning: %2").arg(pipelineType, warning->message);
-//       emit errorOccurred(warningMsg);
-//       g_clear_error(&warning);
-//       break;
-//     }
-//     case GST_MESSAGE_EOS: {
-//       QString eosMsg = QString("%1 pipeline reached end of stream.").arg(pipelineType);
-//       emit errorOccurred(eosMsg);
-//       break;
-//     }
-//     case GST_MESSAGE_STATE_CHANGED: {
-//       GstState oldState, newState, pendingState;
-//       gst_message_parse_state_changed(message, &oldState, &newState, &pendingState);
-//       if (GST_MESSAGE_SRC(message) == GST_OBJECT(pipeline)) {
-//         QString stateChangeMsg = QString("%1 pipeline state changed from %2 to %3.").arg(pipelineType, gst_element_state_get_name(oldState), gst_element_state_get_name(newState));
-//       }
-//       break;
-//     }
-//     case GST_MESSAGE_BUFFERING: {
-//       gint percent = 0;
-//       gst_message_parse_buffering(message, &percent);
-//       QString bufferingMsg = QString("%1 pipeline buffering: %2%%").arg(pipelineType).arg(percent);
-//       break;
-//     }
-//     case GST_MESSAGE_STREAM_STATUS: {
-//       GstStreamStatusType streamStatus;
-//       GstElement *owner = nullptr;
-//       gst_message_parse_stream_status(message, &streamStatus, &owner);
-//       const gchar *statusTypeName = get_stream_status_type_name(streamStatus);
-//       QString streamStatusMsg = QString("%1 stream status: %2 for element %3.").arg(pipelineType, statusTypeName, GST_ELEMENT_NAME(owner));
-//       break;
-//     }
-//     case GST_MESSAGE_NEW_CLOCK: {
-//       GstClock *newClock = nullptr;
-//       gst_message_parse_new_clock(message, &newClock);
-//       QString newClockMsg = QString("%1 new clock: %2.").arg(pipelineType, gst_object_get_name(GST_OBJECT(newClock)));
-//       break;
-//     }
-//     case GST_MESSAGE_TAG: {
-//       GstTagList *tags = nullptr;
-//       gst_message_parse_tag(message, &tags);
-//       gchar *tagsStr = gst_tag_list_to_string(tags);
-//       QString tagMsg = QString("%1 tags: %2.").arg(pipelineType).arg(tagsStr);
-//       g_free(tagsStr);
-//       gst_tag_list_unref(tags);
-//       break;
-//     }
-//     case GST_MESSAGE_LATENCY: {
-//       QString latencyMsg = QString("%1 latency message received.").arg(pipelineType);
-//       break;
-//     }
-//     case GST_MESSAGE_ASYNC_DONE: {
-//       QString asyncDoneMsg = QString("%1 async done message received.").arg(pipelineType);
-//       break;
-//     }
-//     case GST_MESSAGE_STREAM_START: {
-//       QString streamStartMsg = QString("%1 stream start message received.").arg(pipelineType);
-//       break;
-//     }
-//     case GST_MESSAGE_QOS: {
-//       GstFormat format;
-//       guint64 processed, dropped;
-//       gst_message_parse_qos_stats(message, &format, &processed, &dropped);
-//       QString qosMsg = QString("%1 QOS message received: processed=%2, dropped=%3.").arg(pipelineType).arg(processed).arg(dropped);
-//       break;
-//     }
-//     default:
-//       qCDebug(GstVideoReceiverLog) << "Unhandled message type: " << GST_MESSAGE_TYPE_NAME(message);
-//       break;
-//     }
-//     gst_message_unref(message);
-//   }
-//   gst_object_unref(bus);
-// }
-
-/*===========================================================================*/
 
 GstVideoWorker::GstVideoWorker(QObject *parent)
     : QThread(parent)

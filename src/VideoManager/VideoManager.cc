@@ -32,6 +32,7 @@
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickItem>
 #include <QtQuick/QQuickWindow>
+#include <QtCore/QTimer>
 
 QGC_LOGGING_CATEGORY(VideoManagerLog, "qgc.videomanager.videomanager")
 
@@ -111,17 +112,10 @@ void VideoManager::init(QQuickWindow *window)
         }
         receiver->setName(streamName);
 
-        void *sink = QGCCorePlugin::instance()->createVideoSink(receiver->widget(), receiver);
-        if (!sink) {
-            qCDebug(VideoManagerLog) << "createVideoSink() failed" << streamName;
-            continue;
-        }
-        receiver->setSink(sink);
-
         _initVideoReceiver(receiver, window);
     }
 
-    window->scheduleRenderJob(new FinishVideoInitialization(window), QQuickWindow::BeforeSynchronizingStage);
+    window->scheduleRenderJob(new FinishVideoInitialization(), QQuickWindow::BeforeSynchronizingStage);
 
     _initialized = true;
 }
@@ -189,14 +183,16 @@ void VideoManager::startRecording(const QString &videoFile)
     const QString videoFileUrl = videoFile.isEmpty() ? QDateTime::currentDateTime().toString("yyyy-MM-dd_hh.mm.ss") : videoFile;
     const QString ext = kFileExtension[fileFormat];
 
-    const QString videoFileName = savePath + "/" + videoFileUrl + ".%1" + ext;
+    const QString videoFileNameTemplate = savePath + "/" + videoFileUrl + ".%1" + ext;
 
     for (VideoReceiver *receiver : std::as_const(_videoReceivers)) {
         if (!receiver->started()) {
             qCDebug(VideoManagerLog) << "Video receiver is not ready.";
             continue;
         }
-        receiver->startRecording(videoFileName.arg(receiver->name()), fileFormat);
+        const QString streamName = (receiver->name() == QStringLiteral("videoContent")) ? "" : (receiver->name() + ".");
+        const QString videoFileName = videoFileNameTemplate.arg(streamName);
+        receiver->startRecording(videoFileName, fileFormat);
     }
 }
 
@@ -650,6 +646,18 @@ void VideoManager::_initVideoReceiver(VideoReceiver *receiver, QQuickWindow *win
         qCWarning(VideoManagerLog) << "Receiver already initialized";
     }
 
+    QQuickItem *widget = window->findChild<QQuickItem*>(receiver->name());
+    if (!widget) {
+        qCCritical(VideoManagerLog) << "stream widget not found" << receiver->name();
+    }
+    receiver->setWidget(widget);
+
+    void *sink = QGCCorePlugin::instance()->createVideoSink(receiver->widget(), receiver);
+    if (!sink) {
+        qCCritical(VideoManagerLog) << "createVideoSink() failed" << receiver->name();
+    }
+    receiver->setSink(sink);
+
     (void) connect(receiver, &VideoReceiver::onStartComplete, this, [this, receiver](VideoReceiver::STATUS status) {
         if (!receiver) {
             return;
@@ -673,12 +681,15 @@ void VideoManager::_initVideoReceiver(VideoReceiver *receiver, QQuickWindow *win
     });
 
     (void) connect(receiver, &VideoReceiver::onStopComplete, this, [this, receiver](VideoReceiver::STATUS status) {
-        qCDebug(VideoManagerLog) << "Video" << receiver->name() << "Stop complete, status:" << status;
+        qCDebug(VideoManagerLog) << "Stop complete" << receiver->name() << receiver->uri()  << ", status:" << status;
         receiver->setStarted(false);
         if (status == VideoReceiver::STATUS_INVALID_URL) {
             qCDebug(VideoManagerLog) << "Invalid video URL. Not restarting";
         } else {
-            _startReceiver(receiver);
+            QTimer::singleShot(1000, receiver, [this, receiver]() {
+                qCDebug(VideoManagerLog) << "Restarting video receiver" << receiver->name() << receiver->uri();
+                _startReceiver(receiver);
+            });
         }
     });
 
@@ -748,37 +759,20 @@ void VideoManager::_initVideoReceiver(VideoReceiver *receiver, QQuickWindow *win
     }
 }
 
-void VideoManager::startVideo(QQuickWindow *window)
+void VideoManager::startVideo()
 {
-    if (!window) {
-        qCCritical(VideoManagerLog) << "Failed To Finish Video Initilization - root windows is null";
-        return;
-    }
-
     if (!hasVideo()) {
         qCDebug(VideoManagerLog) << "Stream not enabled/configured";
         return;
     }
 
-    for (VideoReceiver *receiver : std::as_const(_videoReceivers)) {
-        QQuickItem *widget = window->findChild<QQuickItem*>(receiver->name());
-        if (!widget) {
-            qCDebug(VideoManagerLog) << "stream widget not found" << receiver->name();
-            continue;
-        }
-        receiver->setWidget(widget);
-
-        if (receiver->sink() && receiver->started()) {
-            receiver->startDecoding(receiver->sink());
-        }
-    }
+    _restartAllVideos();
 }
 
 /*===========================================================================*/
 
-FinishVideoInitialization::FinishVideoInitialization(QQuickWindow *window)
+FinishVideoInitialization::FinishVideoInitialization()
     : QRunnable()
-    , _window(window)
 {
     // qCDebug(VideoManagerLog) << this;
 }
@@ -790,5 +784,5 @@ FinishVideoInitialization::~FinishVideoInitialization()
 
 void FinishVideoInitialization::run()
 {
-    VideoManager::instance()->startVideo(_window);
+    VideoManager::instance()->startVideo();
 }

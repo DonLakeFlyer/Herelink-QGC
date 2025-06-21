@@ -50,7 +50,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          fetch-tags: true
+          fetch-depth: 1
+          fetch-tags: false
+
+      - name: Get all tags for correct version determination
+        working-directory:  ${{ github.workspace }}
+        run: |
+          git fetch --all --tags -f --depth 1
 
       - name: Initial Setup
         uses: ./.github/actions/common
@@ -72,7 +78,7 @@ jobs:
               -DQT_ANDROID_ABIS="${{ env.QT_ANDROID_ABIS }}"
               -DQT_ANDROID_BUILD_ALL_ABIS=OFF
               -DQT_HOST_PATH="${{ env.QT_ROOT_DIR }}/../gcc_64"
-              -DQT_ANDROID_SIGN_APK='ON'
+              -DQT_ANDROID_SIGN_APK=${{ env.QT_ANDROID_KEYSTORE_STORE_PASS != '' && 'ON' || 'OFF' }}
               -DQT_DEBUG_FIND_PACKAGE=ON
               -DQGC_STABLE_BUILD=${{ github.ref_type == 'tag' || contains(github.ref, 'Stable') && 'ON' || 'OFF' }}
 
@@ -86,5 +92,5 @@ jobs:
         if: matrix.BuildType == 'Release'
         uses: actions/upload-artifact@v4
         with:
-            name: ${{ env.ARTIFACT }}
-            path: ${{ runner.temp }}/shadow_build_dir/${{ env.ARTIFACT }}
+          name: ${{ env.ARTIFACT }}
+          path: ${{ runner.temp }}/shadow_build_dir/android-build/*.apk

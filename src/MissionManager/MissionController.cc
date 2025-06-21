@@ -195,6 +195,9 @@ void MissionController::_newMissionItemsAvailableFromVehicle(bool removeAllReque
         _visualItems = newControllerMissionItems;
         _settingsItem = settingsItem;
 
+        // We set Altitude mode to mixed, otherwise if we need a non relative altitude frame we won't be able to change it 
+        setGlobalAltitudeMode(QGroundControlQmlGlobal::AltitudeModeMixed);
+
         MissionController::_scanForAdditionalSettings(_visualItems, _masterController);
 
         _initAllVisualItems();
@@ -431,7 +434,7 @@ VisualMissionItem* MissionController::insertComplexMissionItem(QString itemName,
     ComplexMissionItem* newItem = nullptr;
 
     if (itemName == SurveyComplexItem::name) {
-        newItem = new SurveyComplexItem(_masterController, _flyView, QString() /* kmlFile */);
+        newItem = new SurveyComplexItem(_masterController, _flyView, QString() /* kmlOrShpFile */);
         newItem->setCoordinate(mapCenterCoordinate);
 
         double                              prevAltitude;
@@ -447,9 +450,9 @@ VisualMissionItem* MissionController::insertComplexMissionItem(QString itemName,
     } else if (itemName == VTOLLandingComplexItem::name) {
         newItem = new VTOLLandingComplexItem(_masterController, _flyView);
     } else if (itemName == StructureScanComplexItem::name) {
-        newItem = new StructureScanComplexItem(_masterController, _flyView, QString() /* kmlFile */);
+        newItem = new StructureScanComplexItem(_masterController, _flyView, QString() /* kmlOrShpFile */);
     } else if (itemName == CorridorScanComplexItem::name) {
-        newItem = new CorridorScanComplexItem(_masterController, _flyView, QString() /* kmlFile */);
+        newItem = new CorridorScanComplexItem(_masterController, _flyView, QString() /* kmlOrShpFile */);
     } else {
         qWarning() << "Internal error: Unknown complex item:" << itemName;
         return nullptr;
@@ -643,7 +646,7 @@ bool MissionController::_loadJsonMissionFileV1(const QJsonObject& json, QmlObjec
             return false;
         }
 
-        SurveyComplexItem* item = new SurveyComplexItem(_masterController, _flyView, QString() /* kmlFile */);
+        SurveyComplexItem* item = new SurveyComplexItem(_masterController, _flyView, QString() /* kmlOrShpFile */);
         const QJsonObject itemObject = itemValue.toObject();
         if (item->load(itemObject, itemObject["id"].toInt(), errorString)) {
             surveyItems.append(item);
@@ -829,7 +832,7 @@ bool MissionController::_loadJsonMissionFileV2(const QJsonObject& json, QmlObjec
 
             if (complexItemType == SurveyComplexItem::jsonComplexItemTypeValue) {
                 qCDebug(MissionControllerLog) << "Loading Survey: nextSequenceNumber" << nextSequenceNumber;
-                SurveyComplexItem* surveyItem = new SurveyComplexItem(_masterController, _flyView, QString() /* kmlFile */);
+                SurveyComplexItem* surveyItem = new SurveyComplexItem(_masterController, _flyView, QString() /* kmlOrShpFile */);
                 if (!surveyItem->load(itemObject, nextSequenceNumber++, errorString)) {
                     return false;
                 }
@@ -856,7 +859,7 @@ bool MissionController::_loadJsonMissionFileV2(const QJsonObject& json, QmlObjec
                 visualItems->append(landingItem);
             } else if (complexItemType == StructureScanComplexItem::jsonComplexItemTypeValue) {
                 qCDebug(MissionControllerLog) << "Loading Structure Scan: nextSequenceNumber" << nextSequenceNumber;
-                StructureScanComplexItem* structureItem = new StructureScanComplexItem(_masterController, _flyView, QString() /* kmlFile */);
+                StructureScanComplexItem* structureItem = new StructureScanComplexItem(_masterController, _flyView, QString() /* kmlOrShpFile */);
                 if (!structureItem->load(itemObject, nextSequenceNumber++, errorString)) {
                     return false;
                 }
@@ -865,7 +868,7 @@ bool MissionController::_loadJsonMissionFileV2(const QJsonObject& json, QmlObjec
                 visualItems->append(structureItem);
             } else if (complexItemType == CorridorScanComplexItem::jsonComplexItemTypeValue) {
                 qCDebug(MissionControllerLog) << "Loading Corridor Scan: nextSequenceNumber" << nextSequenceNumber;
-                CorridorScanComplexItem* corridorItem = new CorridorScanComplexItem(_masterController, _flyView, QString() /* kmlFile */);
+                CorridorScanComplexItem* corridorItem = new CorridorScanComplexItem(_masterController, _flyView, QString() /* kmlOrShpFile */);
                 if (!corridorItem->load(itemObject, nextSequenceNumber++, errorString)) {
                     return false;
                 }
@@ -1278,9 +1281,9 @@ void MissionController::_recalcFlightPathSegments(void)
     // This is due to the initial implementation being buggy and incomplete with respect to correctly generating the line set.
     // So for now we leave the code for displaying them in, but none are ever added until we have time to implement the correct support.
 
-    _simpleFlightPathSegments.beginReset();
-    _directionArrows.beginReset();
-    _incompleteComplexItemLines.beginReset();
+    _simpleFlightPathSegments.beginResetModel();
+    _directionArrows.beginResetModel();
+    _incompleteComplexItemLines.beginResetModel();
 
     _simpleFlightPathSegments.clear();
     _directionArrows.clear();
@@ -1432,9 +1435,9 @@ void MissionController::_recalcFlightPathSegments(void)
         _directionArrows.append(coordVector);
     }
 
-    _simpleFlightPathSegments.endReset();
-    _directionArrows.endReset();
-    _incompleteComplexItemLines.endReset();
+    _simpleFlightPathSegments.endResetModel();
+    _directionArrows.endResetModel();
+    _incompleteComplexItemLines.endResetModel();
 
     // Anything left in the old table is an obsolete line object that can go
     qDeleteAll(oldSegmentTable);
