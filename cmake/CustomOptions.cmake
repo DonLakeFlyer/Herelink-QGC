@@ -21,7 +21,7 @@ set(QGC_SETTINGS_VERSION "9" CACHE STRING "Settings Version") # If you need to m
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 option(QGC_STABLE_BUILD "Stable Build" OFF)
 option(QGC_USE_CACHE "Use Build Caching" ON)
-cmake_dependent_option(QGC_BUILD_TESTING "Enable testing" OFF "CMAKE_BUILD_TYPE STREQUAL Debug" OFF)
+cmake_dependent_option(QGC_BUILD_TESTING "Enable testing" ON "CMAKE_BUILD_TYPE STREQUAL Debug" OFF)
 cmake_dependent_option(QGC_DEBUG_QML "Build QGroundControl with QML debugging/profiling support." OFF "CMAKE_BUILD_TYPE STREQUAL Debug" OFF)
 
 # Features
@@ -42,7 +42,7 @@ option(QGC_ENABLE_QT_VIDEOSTREAMING "Enable QtMultimedia Video Backend" OFF) # Q
 
 # MAVLink
 set(QGC_MAVLINK_GIT_REPO "https://github.com/mavlink/c_library_v2.git" CACHE STRING "URL to MAVLink Git Repo")
-set(QGC_MAVLINK_GIT_TAG "7ea034366ee7f09f3991a5b82f51f0c259023b38" CACHE STRING "Tag of MAVLink Git Repo")
+set(QGC_MAVLINK_GIT_TAG "19f9955598af9a9181064619bd2e3c04bd2d848a" CACHE STRING "Tag of MAVLink Git Repo")
 
 # APM
 option(QGC_DISABLE_APM_MAVLINK "Disable APM Dialect" OFF)
@@ -78,7 +78,7 @@ set(QGC_WINDOWS_ICON_PATH "${CMAKE_SOURCE_DIR}/deploy/windows/WindowsQGC.ico" CA
 set(QGC_WINDOWS_RESOURCE_FILE_PATH "${CMAKE_SOURCE_DIR}/deploy/windows/QGroundControl.rc" CACHE FILEPATH "Windows Resource File Path")
 
 # CPM
-set(CPM_SOURCE_CACHE ${CMAKE_BINARY_DIR}/cpm_modules CACHE PATH "Directory to download CPM dependencies")
+set(QGC_CPM_SOURCE_CACHE "" CACHE PATH "Directory to Download CPM Dependencies, Overrides CPM_SOURCE_CACHE Env Variable")
 # set(CPM_USE_NAMED_CACHE_DIRECTORIES ON CACHE BOOL "Use additional directory of package name in cache on the most nested level.")
 
 # Qt

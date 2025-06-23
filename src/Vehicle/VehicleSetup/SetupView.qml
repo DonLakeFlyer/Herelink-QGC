@@ -25,8 +25,6 @@ Rectangle {
 
     QGCPalette { id: qgcPal; colorGroupEnabled: true }
 
-    ButtonGroup { id: setupButtonGroup }
-
     readonly property real      _defaultTextHeight: ScreenTools.defaultFontPixelHeight
     readonly property real      _defaultTextWidth:  ScreenTools.defaultFontPixelWidth
     readonly property real      _horizontalMargin:  _defaultTextWidth / 2
@@ -50,7 +48,7 @@ Rectangle {
             if (QGroundControl.multiVehicleManager.activeVehicle.autopilotPlugin.vehicleComponents.length === 0) {
                 panelLoader.setSourceComponent(noComponentsVehicleSummaryComponent)
             } else {
-                panelLoader.setSource("VehicleSummary.qml")
+                panelLoader.setSource("qrc:/qml/QGroundControl/VehicleSetup/VehicleSummary.qml")
             }
         } else if (QGroundControl.multiVehicleManager.parameterReadyVehicleAvailable) {
             panelLoader.setSourceComponent(missingParametersVehicleSummaryComponent)
@@ -91,7 +89,7 @@ Rectangle {
     function showParametersPanel() {
         if (mainWindow.allowViewSwitch()) {
             parametersButton.checked = true
-            panelLoader.setSource("SetupParameterEditor.qml")
+            panelLoader.setSource("qrc:/qml/QGroundControl/VehicleSetup/SetupParameterEditor.qml")
         }
     }
 
@@ -109,7 +107,7 @@ Rectangle {
     Connections {
         target: QGroundControl.multiVehicleManager
         onParameterReadyVehicleAvailableChanged: {
-            if (QGroundControl.multiVehicleManager.parameterReadyVehicleAvailable || summaryButton.checked || setupButtonGroup.current != firmwareButton) {
+            if (QGroundControl.multiVehicleManager.parameterReadyVehicleAvailable || summaryButton.checked || !firmwareButton.checked) {
                 // Show/Reload the Summary panel when:
                 //      A new vehicle shows up
                 //      The summary panel is already showing and the active vehicle goes away
@@ -224,7 +222,7 @@ Rectangle {
                 visible:            QGroundControl.multiVehicleManager.activeVehicle ? QGroundControl.multiVehicleManager.activeVehicle.flowImageIndex > 0 : false
                 text:               qsTr("Optical Flow")
                 Layout.fillWidth:   true
-                onClicked:          showPanel(this, "OpticalFlowSensor.qml")
+                onClicked:          showPanel(this, "qrc:/qml/QGroundControl/VehicleSetup/OpticalFlowSensor.qml")
             }
 
             ConfigButton {
@@ -234,7 +232,7 @@ Rectangle {
                 visible:            _fullParameterVehicleAvailable && joystickManager.joysticks.length !== 0
                 text:               _forcedToButtonsOnly ? qsTr("Buttons") : qsTr("Joystick")
                 Layout.fillWidth:   true
-                onClicked:          showPanel(this, "JoystickConfig.qml")
+                onClicked:          showPanel(this, "qrc:/qml/QGroundControl/VehicleSetup/JoystickConfig.qml")
 
                 property var    _activeJoystick:        joystickManager.activeJoystick
                 property bool   _buttonsOnly:           _activeJoystick ? _activeJoystick.axisCount == 0 : false
@@ -265,7 +263,7 @@ Rectangle {
                 text:               qsTr("Parameters")
                 Layout.fillWidth:   true
                 icon.source:        "/qmlimages/subMenuButtonImage.png"
-                onClicked:          showPanel(this, "SetupParameterEditor.qml")
+                onClicked:          showPanel(this, "qrc:/qml/QGroundControl/VehicleSetup/SetupParameterEditor.qml")
             }
 
             ConfigButton {
@@ -275,7 +273,7 @@ Rectangle {
                 text:               qsTr("Firmware")
                 Layout.fillWidth:   true
 
-                onClicked: showPanel(this, "FirmwareUpgrade.qml")
+                onClicked: showPanel(this, "qrc:/qml/QGroundControl/VehicleSetup/FirmwareUpgrade.qml")
             }
         }
     }
