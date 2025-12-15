@@ -90,7 +90,7 @@ jobs:
 
       - name: Save artifact
         if: matrix.BuildType == 'Release'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ env.ARTIFACT }}
           path: ${{ runner.temp }}/shadow_build_dir/android-build/*.apk
